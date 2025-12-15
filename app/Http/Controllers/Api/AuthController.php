@@ -6,59 +6,38 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
-use App\Models\RefreshToken;
-use App\Models\User;
-use App\Models\UserProfile;
+use App\Modules\Auth\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    /**
+     * Auth service instance.
+     */
+    protected AuthService $authService;
+
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
+
     /**
      * Register a new user.
      */
     public function register(RegisterRequest $request): JsonResponse
     {
         try {
-            DB::beginTransaction();
-
-            // Create user
-            $user = User::create([
-                'email' => $request->email,
-                'password_hash' => Hash::make($request->password),
-                'role' => 'user',
-                'is_active' => true,
-            ]);
-
-            // Create user profile
-            UserProfile::create([
-                'user_id' => $user->id,
-                'full_name' => $request->full_name,
-                'date_of_birth' => $request->date_of_birth,
-                'phone_number' => $request->phone_number,
-            ]);
-
-            // Generate tokens
-            $accessToken = $user->createToken('access_token')->plainTextToken;
-            $refreshToken = $this->generateRefreshToken($user);
-
-            DB::commit();
+            $data = $this->authService->register($request->validated());
 
             return response()->json([
                 'message' => 'Registration successful',
-                'data' => [
-                    'user' => new UserResource($user->load('profile')),
-                    'access_token' => $accessToken,
-                    'refresh_token' => $refreshToken,
-                    'token_type' => 'Bearer',
-                ],
+                'data' => $data,
             ], 201);
         } catch (\Exception $e) {
-            DB::rollBack();
-            
             return response()->json([
                 'message' => 'Registration failed',
                 'error' => $e->getMessage(),
@@ -71,45 +50,22 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        // Find user by email
-        $user = User::where('email', $request->email)->first();
-
-        // Verify credentials
-        if (!$user || !Hash::check($request->password, $user->password_hash)) {
-            return response()->json([
-                'message' => 'Invalid credentials',
-            ], 401);
-        }
-
-        // Check if user is active
-        if (!$user->is_active) {
-            return response()->json([
-                'message' => 'Account is inactive. Please contact support.',
-            ], 403);
-        }
-
         try {
-            // Update last login
-            $user->update(['last_login_at' => now()]);
-
-            // Generate tokens
-            $accessToken = $user->createToken('access_token')->plainTextToken;
-            $refreshToken = $this->generateRefreshToken($user);
+            $data = $this->authService->login(
+                $request->email,
+                $request->password
+            );
 
             return response()->json([
                 'message' => 'Login successful',
-                'data' => [
-                    'user' => new UserResource($user->load('profile')),
-                    'access_token' => $accessToken,
-                    'refresh_token' => $refreshToken,
-                    'token_type' => 'Bearer',
-                ],
+                'data' => $data,
             ]);
         } catch (\Exception $e) {
+            $statusCode = $e->getCode() ?: 500;
+            
             return response()->json([
-                'message' => 'Login failed',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
     }
 
@@ -122,47 +78,19 @@ class AuthController extends Controller
             'refresh_token' => ['required', 'string'],
         ]);
 
-        // Find refresh token
-        $refreshToken = RefreshToken::where('token', $request->refresh_token)->first();
-
-        if (!$refreshToken) {
-            return response()->json([
-                'message' => 'Invalid refresh token',
-            ], 401);
-        }
-
-        // Validate token
-        if (!$refreshToken->isValid()) {
-            return response()->json([
-                'message' => 'Refresh token has expired or been revoked',
-            ], 401);
-        }
-
         try {
-            $user = $refreshToken->user;
-
-            // Check if user is active
-            if (!$user->is_active) {
-                return response()->json([
-                    'message' => 'Account is inactive',
-                ], 403);
-            }
-
-            // Generate new access token
-            $accessToken = $user->createToken('access_token')->plainTextToken;
+            $data = $this->authService->refresh($request->refresh_token);
 
             return response()->json([
                 'message' => 'Token refreshed successfully',
-                'data' => [
-                    'access_token' => $accessToken,
-                    'token_type' => 'Bearer',
-                ],
+                'data' => $data,
             ]);
         } catch (\Exception $e) {
+            $statusCode = $e->getCode() ?: 500;
+            
             return response()->json([
-                'message' => 'Token refresh failed',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => $e->getMessage(),
+            ], $statusCode);
         }
     }
 
@@ -172,13 +100,7 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            $user = $request->user();
-
-            // Revoke all access tokens
-            $user->tokens()->delete();
-
-            // Revoke all refresh tokens
-            $user->refreshTokens()->update(['is_revoked' => true]);
+            $this->authService->logout($request->user());
 
             return response()->json([
                 'message' => 'Logout successful',
@@ -196,25 +118,13 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
+        $user = $request->user()->load('profile');
+        
         return response()->json([
-            'data' => new UserResource($request->user()->load('profile')),
+            'data' => array_merge(
+                (new UserResource($user))->toArray($request),
+                ['role' => $user->role]
+            ),
         ]);
-    }
-
-    /**
-     * Generate a refresh token for the user.
-     */
-    private function generateRefreshToken(User $user): string
-    {
-        $token = Str::random(64);
-
-        RefreshToken::create([
-            'user_id' => $user->id,
-            'token' => $token,
-            'expires_at' => now()->addDays(30),
-            'is_revoked' => false,
-        ]);
-
-        return $token;
     }
 }
