@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-class LoginRequest extends BaseFormRequest
+class TopupRequest extends BaseFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -20,8 +20,7 @@ class LoginRequest extends BaseFormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'amount' => ['required', 'numeric', 'min:10000'],
         ];
     }
 
@@ -33,9 +32,9 @@ class LoginRequest extends BaseFormRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'Email address is required',
-            'email.email' => 'Please provide a valid email address',
-            'password.required' => 'Password is required',
+            'amount.required' => 'Top-up amount is required',
+            'amount.numeric' => 'Top-up amount must be a number',
+            'amount.min' => 'Minimum top-up amount is Rp 10,000',
         ];
     }
 }

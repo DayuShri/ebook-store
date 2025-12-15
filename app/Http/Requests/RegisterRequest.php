@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
-class RegisterRequest extends FormRequest
+class RegisterRequest extends BaseFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -43,8 +42,21 @@ class RegisterRequest extends FormRequest
             'email.email' => 'Please provide a valid email address',
             'email.unique' => 'This email is already registered',
             'password.required' => 'Password is required',
+            'password.min' => 'Password must be at least 8 characters',
             'full_name.required' => 'Full name is required',
             'date_of_birth.before' => 'Date of birth must be in the past',
+        ];
+    }
+
+    /**
+     * Get custom attribute names for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'password' => 'password (must contain uppercase, lowercase, numbers, and symbols)',
         ];
     }
 }

@@ -16,20 +16,40 @@ class AdminUserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->get('per_page', 15);
-        $users = User::with('profile')
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+        try {
+            $perPage = $request->get('per_page', 15);
+            
+            // Validate per_page parameter
+            if ($perPage < 1 || $perPage > 100) {
+                return response()->json([
+                    'message' => 'Invalid pagination parameter',
+                    'error' => 'per_page must be between 1 and 100',
+                ], 400);
+            }
+            
+            $users = User::with('profile')
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
 
-        return response()->json([
-            'data' => UserResource::collection($users->items()),
-            'meta' => [
-                'current_page' => $users->currentPage(),
-                'last_page' => $users->lastPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-            ],
-        ]);
+            return response()->json([
+                'data' => UserResource::collection($users->items()),
+                'meta' => [
+                    'current_page' => $users->currentPage(),
+                    'last_page' => $users->lastPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to retrieve users list', [
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to retrieve users',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -55,20 +75,38 @@ class AdminUserController extends Controller
      */
     public function activate(string $id): JsonResponse
     {
-        $user = User::find($id);
+        try {
+            $user = User::find($id);
 
-        if (!$user) {
+            if (!$user) {
+                return response()->json([
+                    'message' => 'User not found',
+                ], 404);
+            }
+            
+            if ($user->is_active) {
+                return response()->json([
+                    'message' => 'User is already active',
+                ], 400);
+            }
+
+            $user->update(['is_active' => true]);
+
             return response()->json([
-                'message' => 'User not found',
-            ], 404);
+                'message' => 'User activated successfully',
+                'data' => new UserResource($user->fresh()),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to activate user', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to activate user',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        $user->update(['is_active' => true]);
-
-        return response()->json([
-            'message' => 'User activated successfully',
-            'data' => new UserResource($user->fresh()),
-        ]);
     }
 
     /**
@@ -108,26 +146,38 @@ class AdminUserController extends Controller
      */
     public function promoteToAdmin(string $id): JsonResponse
     {
-        $user = User::find($id);
+        try {
+            $user = User::find($id);
 
-        if (!$user) {
+            if (!$user) {
+                return response()->json([
+                    'message' => 'User not found',
+                ], 404);
+            }
+
+            if ($user->role === 'admin') {
+                return response()->json([
+                    'message' => 'User is already an admin',
+                ], 400);
+            }
+
+            $user->update(['role' => 'admin']);
+
             return response()->json([
-                'message' => 'User not found',
-            ], 404);
-        }
-
-        if ($user->role === 'admin') {
+                'message' => 'User promoted to admin successfully',
+                'data' => new UserResource($user->fresh()),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to promote user to admin', [
+                'user_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+            
             return response()->json([
-                'message' => 'User is already an admin',
-            ], 400);
+                'message' => 'Failed to promote user',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        $user->update(['role' => 'admin']);
-
-        return response()->json([
-            'message' => 'User promoted to admin successfully',
-            'data' => new UserResource($user->fresh()),
-        ]);
     }
 
     /**
@@ -199,17 +249,28 @@ class AdminUserController extends Controller
      */
     public function statistics(): JsonResponse
     {
-        $stats = [
-            'total_users' => User::count(),
-            'active_users' => User::where('is_active', true)->count(),
-            'inactive_users' => User::where('is_active', false)->count(),
-            'admin_users' => User::where('role', 'admin')->count(),
-            'regular_users' => User::where('role', 'user')->count(),
-            'recent_registrations' => User::where('created_at', '>=', now()->subDays(7))->count(),
-        ];
+        try {
+            $stats = [
+                'total_users' => User::count(),
+                'active_users' => User::where('is_active', true)->count(),
+                'inactive_users' => User::where('is_active', false)->count(),
+                'admin_users' => User::where('role', 'admin')->count(),
+                'regular_users' => User::where('role', 'user')->count(),
+                'recent_registrations' => User::where('created_at', '>=', now()->subDays(7))->count(),
+            ];
 
-        return response()->json([
-            'data' => $stats,
-        ]);
+            return response()->json([
+                'data' => $stats,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to retrieve user statistics', [
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to retrieve statistics',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
