@@ -5,6 +5,23 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\VoucherController;
 
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+| Note: Module routes are automatically loaded by ModuleServiceProvider
+| from app/Modules/{Module}/Routes/api.php and app/Modules/{Module}/Routes/hmvc.php
+*/
+
+// Health check endpoint
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
+// Order Service Routes (punyamu)
 Route::prefix('cart')->group(function () {
     Route::get('/', [CartController::class, 'index']);
     Route::post('/items', [CartController::class, 'store']);
@@ -23,6 +40,5 @@ Route::prefix('vouchers')->group(function () {
     Route::get('/{id}', [VoucherController::class, 'show']);
     Route::patch('/{id}', [VoucherController::class, 'update']);
     Route::delete('/{id}', [VoucherController::class, 'destroy']);
-
     Route::post('/validate', [VoucherController::class, 'validateVoucher']);
 });
