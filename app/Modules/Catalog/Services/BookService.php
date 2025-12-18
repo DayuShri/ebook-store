@@ -3,7 +3,6 @@
 namespace App\Modules\Catalog\Services;
 use App\Modules\Catalog\Models\BookCategoryMapping;
 use App\Modules\Catalog\Models\Book;
-use App\Modules\Catalog\Models\BookAuthor;
 use Illuminate\Support\Facades\DB;
 
 class BookService
@@ -24,34 +23,21 @@ class BookService
     {
         return DB::transaction(function () use ($data) {
             $categoryIds = $data['category_ids'] ?? [];
-            $authorIds = $data['author_ids'] ?? [];
-
-            unset($data['category_ids'], $data['author_ids']);
+            unset($data['category_ids']);
 
             $book = Book::create($data);
 
-          if (!empty($categoryIds)) {
-    foreach ($categoryIds as $categoryId) {
-        BookCategoryMapping::create([
-            'book_id'     => $book->id,
-            'category_id' => $categoryId,
-        ]);
-    }
-}
-
-            // author pivot (tanpa join ke author service)
-            foreach ($authorIds as $i => $authorId) {
-                BookAuthor::create([
-                    'book_id' => $book->id,
-                    'author_id' => $authorId,
-                    'author_order' => $i + 1,
-                ]);
+            if (!empty($categoryIds)) {
+                foreach ($categoryIds as $categoryId) {
+                    BookCategoryMapping::create([
+                        'book_id'     => $book->id,
+                        'category_id' => $categoryId,
+                    ]);
+                }
             }
 
             return $book->load('categories');
         });
-
-        
     }
 
     public function update(string $id, array $data)
@@ -60,9 +46,7 @@ class BookService
             $book = Book::findOrFail($id);
 
             $categoryIds = $data['category_ids'] ?? null;
-            $authorIds = $data['author_ids'] ?? null;
-
-            unset($data['category_ids'], $data['author_ids']);
+            unset($data['category_ids']);
 
             $book->update($data);
 
@@ -70,20 +54,7 @@ class BookService
                 $book->categories()->sync($categoryIds);
             }
 
-            if (is_array($authorIds)) {
-                BookAuthor::where('book_id', $book->id)->delete();
-                foreach ($authorIds as $i => $authorId) {
-                    BookAuthor::create([
-                        'book_id' => $book->id,
-                        'author_id' => $authorId,
-                        'author_order' => $i + 1,
-                    ]);
-                }
-            }
-
             return $book->load('categories');
-
-            
         });
     }
 
@@ -140,4 +111,38 @@ class BookService
             'is_active' => (bool)$book->is_active,
         ];
     }
+
+    // HMVC: full info (wishlist detail)
+    public function full(string $id): ?array
+    {
+        $book = Book::with('categories')->find($id);
+
+        if (!$book) {
+            return null;
+        }
+
+        return [
+            'book_id' => $book->id,
+            'isbn' => $book->isbn,
+            'title' => $book->title,
+            'subtitle' => $book->subtitle,
+            'synopsis' => $book->synopsis,
+            'author' => $book->author,
+            'publisher' => $book->publisher,
+            'cover_image_url' => $book->cover_image_url,
+            'price' => (string)$book->price,
+            'discount_percentage' => (string)$book->discount_percentage,
+            'publication_date' => $book->publication_date?->toDateString(),
+            'page_count' => $book->page_count,
+            'language' => $book->language,
+            'file_format' => $book->file_format,
+            'file_size_mb' => (string)$book->file_size_mb,
+            'is_active' => (bool)$book->is_active,
+            'categories' => $book->categories->map(fn($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+            ])->toArray(),
+        ];
+    }
 }
+
