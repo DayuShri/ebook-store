@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Modules\Library\Controllers\Http\ReaderController;
 
 Route::get('/', function () {
     return view('welcome');
