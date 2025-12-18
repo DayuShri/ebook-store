@@ -59,7 +59,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('user_id');
             $table->uuid('book_id');
-            $table->text('token')->unique();
+            $table->string('token')->unique();
             $table->timestampTz('expires_at');
             $table->timestampTz('created_at')->useCurrent();
             $table->timestampTz('used_at')->nullable();
