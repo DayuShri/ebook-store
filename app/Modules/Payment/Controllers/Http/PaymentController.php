@@ -54,4 +54,36 @@ class PaymentController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
+
+    public function store(Request $request)
+    {
+        // Validasi data dari order service
+        $data = $request->validate([
+            'order_id' => 'required|uuid',
+            'user_id' => 'required|uuid',
+            'amount' => 'required|numeric',
+            'payment_method' => 'required|string',
+        ]);
+
+        try {
+            // Jika bayar pakai wallet, panggil service potong saldo
+            if ($data['payment_method'] === 'wallet') {
+                $payment = $this->paymentService->processOrderPayment(
+                    $data['order_id'], 
+                    $data['amount'],
+                    $data['user_id']
+                );
+            } else {
+                
+            }
+
+            return response()->json([
+                'success' => true,
+                'payment_id' => $payment->id,
+                'status' => 'success'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
+    }
 }

@@ -108,4 +108,28 @@ class PaymentService
     
         return $payment;
     }
+
+    public function processOrderPayment($orderId, $amount, $userId)
+    {
+        return DB::transaction(function () use ($orderId, $amount, $userId) {
+            // Potong saldo melalui WalletService
+            $this->walletService->deductBalance(
+                $userId, 
+                (float) $amount, 
+                $orderId, 
+                "Pembelian Buku Order #" . $orderId
+            );
+
+            return Payment::create([
+                'id' => Str::uuid(), 
+                'payment_number' => 'PAY-ORD-' . strtoupper(Str::random(8)),
+                'order_id' => $orderId,
+                'user_id' => $userId,
+                'amount' => $amount,
+                'payment_method' => 'wallet',
+                'status' => 'success',
+                'paid_at' => now(),
+            ]);
+        });
+    }
 }
