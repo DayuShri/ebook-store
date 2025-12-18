@@ -34,14 +34,13 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
 
-    'catalog' => [
-        'base_url' => env('CATALOG_BASE_URL', 'http://localhost:8002'),
-    ],
+        'catalog' => [
+            'base_url' => env('CATALOG_BASE_URL', 'http://localhost:8002'),
+        ],
 
-      'payment' => [
-        'base_url' => env('PAYMENT_BASE_URL', 'http://localhost:8004'),
-    ],
-    
+        'payment' => [
+            'base_url' => env('PAYMENT_BASE_URL', 'http://localhost:8004'),
+        ],
     ],
 
     'xendit' => [
