@@ -236,4 +236,12 @@ class SupabaseService
 
         return $map[$mime] ?? null;
     }
+
+    /**
+     * Alias for signedUrl()
+     */
+    public function getSignedUrl(string $storagePath, int $expiresIn = 3600): ?string
+    {
+        return $this->signedUrl($storagePath, $expiresIn);
+    }
 }

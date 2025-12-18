@@ -24,3 +24,7 @@ Route::get('/health', function () {
         'timestamp' => now()->toIso8601String(),
     ]);
 });
+
+// Library streaming endpoint
+Route::get('/v1/library/stream/{token}', [\App\Modules\Library\Controllers\Api\LibraryStreamController::class, 'stream'])
+    ->name('library.stream');

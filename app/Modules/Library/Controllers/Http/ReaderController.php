@@ -22,7 +22,7 @@ class ReaderController extends Controller
             ->value('file_format') ?? 'PDF';
         
         // Return reader view - authentication will be handled by JavaScript
-        return view('reader.viewer', [
+        return view('frontend.library.reader', [
             'bookId' => $bookId,
             'bookTitle' => $bookTitle,
             'fileFormat' => $fileFormat

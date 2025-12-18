@@ -26,6 +26,12 @@ class LibraryService
         $items = [];
 
         foreach ($library['items'] as $item) {
+            // Only show books with active library status
+            $libraryStatus = $item['library_status'] ?? 'active';
+            if ($libraryStatus !== 'active') {
+                continue;
+            }
+            
             $book = $this->catalogService->getBook($item['book_id']);
             if ($book) {
                 $items[] = [
@@ -33,6 +39,7 @@ class LibraryService
                     'book_id' => $item['book_id'],
                     'book' => $book,
                     'order_id' => $item['order_id'],
+                    'library_status' => $libraryStatus,
                     'granted_at' => $item['granted_at'],
                     'reading_progress' => $item['reading_progress'] ?? 0,
                     'last_read_at' => $item['last_read_at'] ?? null,
@@ -164,23 +171,36 @@ class LibraryService
         return [
             [
                 'id' => 'lib-mock-001',
-                'book_id' => 'book-002', // Atomic Habits
-                'order_id' => 'ORD-XYZ98765',
-                'granted_at' => now()->subDays(5)->toDateTimeString(),
-                'last_page_read' => 85,
-                'total_pages' => 320,
-                'reading_progress' => 26.6,
-                'last_read_at' => now()->subDays(1)->toDateTimeString(),
+                'book_id' => 'book-001', // The Clean Coder (PDF)
+                'order_id' => 'ORD-TEST001',
+                'library_status' => 'active',
+                'granted_at' => now()->subDays(3)->toDateTimeString(),
+                'last_page_read' => 120,
+                'total_pages' => 250,
+                'reading_progress' => 48.0,
+                'last_read_at' => now()->subMinutes(3)->toDateTimeString(),
             ],
             [
                 'id' => 'lib-mock-002',
-                'book_id' => 'book-006', // Filosofi Teras
-                'order_id' => 'ORD-ABC12345',
-                'granted_at' => now()->subDays(30)->toDateTimeString(),
-                'last_page_read' => 346,
-                'total_pages' => 346,
-                'reading_progress' => 100,
-                'last_read_at' => now()->subDays(10)->toDateTimeString(),
+                'book_id' => 'book-002', // Atomic Habits (EPUB)
+                'order_id' => 'ORD-TEST002',
+                'library_status' => 'active',
+                'granted_at' => now()->subDays(5)->toDateTimeString(),
+                'last_page_read' => 1,
+                'total_pages' => 320,
+                'reading_progress' => 0,
+                'last_read_at' => now()->subMinutes(10)->toDateTimeString(),
+            ],
+            [
+                'id' => 'lib-mock-003',
+                'book_id' => 'book-003', // Deep Work (EPUB)
+                'order_id' => 'ORD-TEST003',
+                'library_status' => 'active',
+                'granted_at' => now()->subDays(14)->toDateTimeString(),
+                'last_page_read' => 1,
+                'total_pages' => 300,
+                'reading_progress' => 0,
+                'last_read_at' => now()->subMinutes(14)->toDateTimeString(),
             ],
         ];
     }
