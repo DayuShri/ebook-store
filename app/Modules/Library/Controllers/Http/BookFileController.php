@@ -55,7 +55,7 @@ class BookFileController extends Controller
 
         $validator = Validator::make($request->all(), [
             'book_id' => ['required', 'uuid'],
-            'file'    => ['required', 'file', 'mimes:pdf,epub', 'max:51200'],
+            'file'    => ['required', 'file', 'mimes:pdf,epub', 'max:100000'],
         ]);
 
         if ($validator->fails()) {

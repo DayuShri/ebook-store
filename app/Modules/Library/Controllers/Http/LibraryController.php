@@ -23,6 +23,16 @@ class LibraryController extends Controller
 
     public function index(Request $request)
     {
+        \Log::info('Library index called');
+        \Log::info('Authorization header: ' . $request->header('Authorization'));
+        \Log::info('Bearer token: ' . $request->bearerToken());
+        \Log::info('User from request: ' . ($request->user() ? $request->user()->id : 'NULL'));
+        
+        if (!$request->user()) {
+            \Log::error('No user found in request - authentication failed');
+            return $this->errorResponse('Unauthenticated', [], 401);
+        }
+        
         $userId = $request->user()->id;
         $items = $this->service->listUserLibrary($userId);
         return $this->successResponse('Library retrieved', LibraryItemResource::collection($items)->resolve(), 200);
