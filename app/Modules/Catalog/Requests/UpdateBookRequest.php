@@ -16,13 +16,12 @@ class UpdateBookRequest extends FormRequest
             'isbn' => 'sometimes|nullable|string|max:20',
             'discount_percentage' => 'sometimes|numeric|min:0|max:100',
             'is_active' => 'sometimes|boolean',
+            'author' => 'sometimes|nullable|string|max:500',
+            'publisher' => 'sometimes|nullable|string|max:255',
 
             'category_ids' => 'sometimes|array',
             'category_ids.*' => 'uuid|exists:book_categories,id',
-
-            'author_ids' => 'sometimes|array',
-            'author_ids.*' => 'uuid',
-            'author_ids.*' => 'string', 
         ];
     }
 }
+

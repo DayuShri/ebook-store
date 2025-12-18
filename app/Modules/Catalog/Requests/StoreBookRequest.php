@@ -17,6 +17,8 @@ class StoreBookRequest extends FormRequest
             'isbn' => 'nullable|string|max:20|unique:books,isbn',
             'subtitle' => 'nullable|string|max:500',
             'synopsis' => 'nullable|string',
+            'author' => 'nullable|string|max:500',
+            'publisher' => 'nullable|string|max:255',
             'cover_image_url' => 'nullable|string',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'publication_date' => 'nullable|date',
@@ -24,14 +26,10 @@ class StoreBookRequest extends FormRequest
             'language' => 'nullable|string|max:10',
             'file_format' => 'nullable|string|max:20',
             'file_size_mb' => 'nullable|numeric|min:0',
-            'publisher_id' => 'nullable|string', // id dari service publisher teman
 
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'uuid|exists:book_categories,id',
-
-            'author_ids' => 'nullable|array',
-            'author_ids.*' => 'uuid',
-            'author_ids.*' => 'string', // author service teman, jadi gak bisa exists di db kamu
         ];
     }
 }
+
