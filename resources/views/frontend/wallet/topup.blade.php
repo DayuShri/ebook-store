@@ -44,48 +44,15 @@
             <p class="text-xs text-gray-500 mt-1">Minimal Rp 10.000, maksimal Rp 10.000.000</p>
         </div>
 
-        {{-- Payment Method --}}
-        <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-3">Metode Pembayaran</label>
-            <div class="space-y-3">
-                <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-gray-300 has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50">
-                    <input type="radio" name="method" value="bank_transfer" class="w-4 h-4 text-primary-600" checked>
-                    <div class="ml-3 flex items-center">
-                        <svg class="w-8 h-8 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
-                        </svg>
-                        <div>
-                            <p class="font-medium text-gray-900">Transfer Bank</p>
-                            <p class="text-sm text-gray-500">BCA, Mandiri, BNI, BRI</p>
-                        </div>
-                    </div>
-                </label>
-
-                <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-gray-300 has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50">
-                    <input type="radio" name="method" value="qris" class="w-4 h-4 text-primary-600">
-                    <div class="ml-3 flex items-center">
-                        <svg class="w-8 h-8 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                        </svg>
-                        <div>
-                            <p class="font-medium text-gray-900">QRIS</p>
-                            <p class="text-sm text-gray-500">Scan dengan e-wallet apapun</p>
-                        </div>
-                    </div>
-                </label>
-
-                <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:border-gray-300 has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50">
-                    <input type="radio" name="method" value="credit_card" class="w-4 h-4 text-primary-600">
-                    <div class="ml-3 flex items-center">
-                        <svg class="w-8 h-8 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                        </svg>
-                        <div>
-                            <p class="font-medium text-gray-900">Kartu Kredit / Debit</p>
-                            <p class="text-sm text-gray-500">Visa, Mastercard</p>
-                        </div>
-                    </div>
-                </label>
+        {{-- Payment Info --}}
+        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-sm text-blue-700">
+                    Anda akan diarahkan ke halaman pembayaran Xendit untuk memilih metode pembayaran (Transfer Bank, QRIS, dll).
+                </p>
             </div>
         </div>
 

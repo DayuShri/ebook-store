@@ -41,6 +41,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
 });
 
+// Payment success callback (from Xendit)
+Route::get('/payment/success', function () {
+    return view('frontend.payment.success');
+})->name('payment.success');
+
 // ============================================================================
 // AUTHENTICATED ROUTES
 // ============================================================================

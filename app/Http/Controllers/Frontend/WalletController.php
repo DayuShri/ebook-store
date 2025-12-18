@@ -49,18 +49,24 @@ class WalletController extends Controller
      */
     public function topup(Request $request)
     {
+        // Determine the amount from preset or custom
+        $amount = $request->input('custom_amount') ?: $request->input('amount');
+        
+        $request->merge(['amount' => $amount]);
+        
         $request->validate([
             'amount' => 'required|numeric|min:10000|max:10000000',
-            'method' => 'required|in:bank_transfer,credit_card,qris',
         ]);
 
-        $result = $this->walletService->topUp(
-            (float) $request->input('amount'),
-            $request->input('method')
-        );
+        $result = $this->walletService->topUp((float) $amount);
 
         if ($result['success']) {
-            return redirect()->route('wallet.index')->with('success', 'Top-up berhasil! Saldo Anda sekarang Rp ' . number_format($result['balance'], 0, ',', '.'));
+            // If there's a checkout URL, redirect to Xendit
+            if (!empty($result['redirect']) && !empty($result['checkout_url'])) {
+                return redirect()->away($result['checkout_url']);
+            }
+            
+            return redirect()->route('wallet.index')->with('success', 'Top-up berhasil!');
         }
 
         return redirect()->back()->with('error', $result['message']);
