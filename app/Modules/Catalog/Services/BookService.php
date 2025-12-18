@@ -140,4 +140,37 @@ class BookService
             'is_active' => (bool)$book->is_active,
         ];
     }
+
+    // HMVC: full info (wishlist detail)
+    public function full(string $id): ?array
+    {
+        $book = Book::with(['categories', 'authorPivots'])->find($id);
+
+        if (!$book) {
+            return null;
+        }
+
+        return [
+            'book_id' => $book->id,
+            'isbn' => $book->isbn,
+            'title' => $book->title,
+            'subtitle' => $book->subtitle,
+            'synopsis' => $book->synopsis,
+            'cover_image_url' => $book->cover_image_url,
+            'price' => (string)$book->price,
+            'discount_percentage' => (string)$book->discount_percentage,
+            'publication_date' => $book->publication_date?->toDateString(),
+            'page_count' => $book->page_count,
+            'language' => $book->language,
+            'file_format' => $book->file_format,
+            'file_size_mb' => (string)$book->file_size_mb,
+            'publisher_id' => $book->publisher_id,
+            'is_active' => (bool)$book->is_active,
+            'categories' => $book->categories->map(fn($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+            ])->toArray(),
+            'author_ids' => $book->authorPivots->pluck('author_id')->toArray(),
+        ];
+    }
 }

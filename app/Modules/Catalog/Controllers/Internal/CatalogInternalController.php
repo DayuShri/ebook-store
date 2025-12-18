@@ -41,4 +41,18 @@ class CatalogInternalController extends Controller
             'data' => $this->service->bulkPrice($data['book_ids'])
         ]);
     }
+
+    public function full($id)
+    {
+        $book = $this->service->full($id);
+
+        if (!$book) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Book not found',
+            ], 404);
+        }
+
+        return response()->json($book);
+    }
 }

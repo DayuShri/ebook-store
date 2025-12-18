@@ -63,11 +63,6 @@ class Wishlist extends Model
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the book in the wishlist.
-     */
-    public function book(): BelongsTo
-    {
-        return $this->belongsTo(Book::class);
-    }
+    // Note: Book relationship removed - use Catalog HMVC API instead
+    // See WishlistService::getUserWishlist() for HMVC implementation
 }

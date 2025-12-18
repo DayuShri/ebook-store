@@ -7,5 +7,6 @@ Route::prefix('hmvc/catalog')->group(function () {
     Route::get('/books/{id}/price', [CatalogInternalController::class, 'price']);
     Route::get('/books/{id}/exists', [CatalogInternalController::class, 'exists']);
     Route::get('/books/{id}/basic', [CatalogInternalController::class, 'basic']);
+    Route::get('/books/{id}/full', [CatalogInternalController::class, 'full']);
     Route::post('/books/bulk-price', [CatalogInternalController::class, 'bulkPrice']);
 });

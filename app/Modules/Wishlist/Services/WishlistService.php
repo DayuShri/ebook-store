@@ -6,32 +6,62 @@ use App\Modules\Wishlist\Exceptions\BookAlreadyInWishlistException;
 use App\Modules\Wishlist\Exceptions\BookNotFoundException;
 use App\Modules\Wishlist\Exceptions\BookNotInWishlistException;
 use App\Modules\Wishlist\Exceptions\WishlistException;
-use App\Modules\Wishlist\Models\Book;
 use App\Modules\Wishlist\Models\Wishlist;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class WishlistService
 {
     /**
+     * Get the HMVC base URL.
+     */
+    protected function hmvcUrl(string $path): string
+    {
+        return config('app.url') . '/hmvc/catalog' . $path;
+    }
+
+    /**
      * Get user's wishlist with book details.
      *
      * @param string $userId
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return array
      * @throws WishlistException
      */
-    public function getUserWishlist(string $userId)
+    public function getUserWishlist(string $userId): array
     {
         try {
-            return Wishlist::where('user_id', $userId)
-                ->with([
-                    'book' => function ($query) {
-                        $query->with(['authors', 'publisher', 'categories']);
-                    }
-                ])
+            $wishlistItems = Wishlist::where('user_id', $userId)
                 ->orderBy('added_at', 'desc')
                 ->get();
+
+            $result = [];
+
+            foreach ($wishlistItems as $item) {
+                // Call Catalog HMVC to get book details
+                $response = Http::get($this->hmvcUrl("/books/{$item->book_id}/full"));
+
+                if ($response->successful()) {
+                    $bookData = $response->json();
+                    $result[] = [
+                        'id' => $item->id,
+                        'user_id' => $item->user_id,
+                        'book_id' => $item->book_id,
+                        'added_at' => $item->added_at,
+                        'book' => $bookData,
+                    ];
+                } else {
+                    // Book might have been deleted, still include in wishlist
+                    $result[] = [
+                        'id' => $item->id,
+                        'user_id' => $item->user_id,
+                        'book_id' => $item->book_id,
+                        'added_at' => $item->added_at,
+                        'book' => null,
+                    ];
+                }
+            }
+
+            return $result;
         } catch (\Exception $e) {
             Log::error('Failed to retrieve wishlist', [
                 'user_id' => $userId,
@@ -54,15 +84,16 @@ class WishlistService
     public function addToWishlist(string $userId, string $bookId): Wishlist
     {
         try {
-            // Verify book exists
-            $book = Book::find($bookId);
-            if (!$book) {
-                throw new BookNotFoundException("Book with ID {$bookId} not found");
+            // Verify book exists via Catalog HMVC
+            $response = Http::get($this->hmvcUrl("/books/{$bookId}/exists"));
+
+            if (!$response->successful()) {
+                throw new BookNotFoundException("Failed to verify book with ID {$bookId}");
             }
 
-            // Check if book is active
-            if (!$book->is_active) {
-                throw new BookNotFoundException("Book is not available");
+            $data = $response->json();
+            if (!$data['exists']) {
+                throw new BookNotFoundException("Book with ID {$bookId} not found or not active");
             }
 
             // Check if already in wishlist

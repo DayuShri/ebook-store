@@ -292,6 +292,23 @@ class CatalogSeeder extends Seeder
                 'publisher_id' => $publishers[0]['id'],
                 'is_active' => true,
             ],
+            [
+                'id' => Str::uuid(),
+                'isbn' => '9786020822501',
+                'title' => 'Komet',
+                'subtitle' => 'Seri Bumi - Buku 3',
+                'synopsis' => 'Petualangan Raib, Seli, dan Ali semakin seru dengan munculnya ancaman baru dari dunia paralel.',
+                'cover_image_url' => 'https://via.placeholder.com/400x600?text=Komet',
+                'price' => 85000,
+                'discount_percentage' => 10,
+                'publication_date' => '2018-01-01',
+                'page_count' => 504,
+                'language' => 'id',
+                'file_format' => 'pdf',
+                'file_size_mb' => 2.9,
+                'publisher_id' => $publishers[0]['id'],
+                'is_active' => true,
+            ],
         ];
 
         DB::table('books')->insert($books);
