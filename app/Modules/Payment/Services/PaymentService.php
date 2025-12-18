@@ -6,6 +6,7 @@ use Xendit\Configuration;
 use Xendit\Invoice\InvoiceApi;
 use Xendit\Invoice\CreateInvoiceRequest;
 use App\Modules\Payment\Models\Payment;
+use App\Modules\Payment\Services\WalletService; // Import Service temanmu
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -13,11 +14,13 @@ use Illuminate\Support\Facades\Auth;
 class PaymentService
 {
     protected $config;
+    protected $walletService;
 
-    public function __construct()
+    public function __construct(WalletService $walletService) // Inject WalletService melalui constructor
     {
         $this->config = Configuration::getDefaultConfiguration();
         $this->config->setApiKey(config('services.xendit.key'));
+        $this->walletService = $walletService;
     }
 
     public function createTopUp($amount)
@@ -25,11 +28,9 @@ class PaymentService
         $apiInstance = new InvoiceApi(null, $this->config);
         $user = Auth::user(); 
 
-        // Pastikan nominal adalah angka bulat (float)
         $amount = (float) $amount;
         $externalId = 'TOPUP-' . Str::random(10);
         
-        // Perbaikan: Tambahkan fallback jika nama atau email user kosong agar Xendit tidak error
         $customerName = $user->name ?? 'Customer ' . $user->id;
         $customerEmail = $user->email ?? 'customer@example.com';
 
@@ -48,7 +49,6 @@ class PaymentService
         try {
             $result = $apiInstance->createInvoice($create_invoice_request);
 
-            // Simpan ke database
             $payment = Payment::create([
                 'id' => Str::uuid(), 
                 'payment_number' => 'PAY-' . strtoupper(Str::random(8)),
@@ -60,12 +60,10 @@ class PaymentService
                 'status' => 'pending',
             ]);
 
-            // Tambahkan link invoice secara manual karena kolomnya tidak ada di database
             $payment->checkout_link = $result['invoice_url']; 
 
             return $payment;
         } catch (\Xendit\XenditSdkException $e) {
-            // Menangkap error spesifik dari SDK Xendit untuk memudahkan debugging
             throw new \Exception("Xendit Error: " . $e->getFullError());
         } catch (\Exception $e) {
             throw new \Exception("Gagal menghubungi Xendit: " . $e->getMessage());
@@ -97,16 +95,15 @@ class PaymentService
             return null; 
         }
     
-        // Pastikan pengecekan status mendukung format Xendit
         if (in_array($data['status'], ['SETTLED', 'PAID'])) {
             $payment->update(['status' => 'success']);
     
-            $wallet = DB::table('wallets')->where('user_id', $payment->user_id)->first();
-            
-            if ($wallet) {
-                DB::table('wallets')->where('user_id', $payment->user_id)
-                    ->increment('balance', $payment->amount);
-            }
+            $this->walletService->addBalance(
+                $payment->user_id, 
+                $payment->amount, 
+                $payment->id, 
+                "Top Up via Xendit (Ref: " . $payment->payment_number . ")"
+            );
         }
     
         return $payment;

@@ -35,7 +35,6 @@ class Payment extends Model
         });
     }
 
-    // Relasi ke User (Auth yang dibuat temanmu)
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class);

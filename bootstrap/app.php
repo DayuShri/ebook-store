@@ -18,7 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
 
-        // TAMBAHKAN INI: Kecualikan rute callback dari proteksi CSRF
         $middleware->validateCsrfTokens(except: [
             'api/v1/payment/callback',
             'api/payment/callback'
