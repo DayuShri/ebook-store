@@ -1,7 +1,9 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\VoucherController;
 
 use App\Http\Controllers\Api\BookController;
 use App\Http\Controllers\Api\CategoryController;
@@ -10,14 +12,8 @@ use App\Http\Controllers\Api\CategoryController;
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
 | Note: Module routes are automatically loaded by ModuleServiceProvider
 | from app/Modules/{Module}/Routes/api.php and app/Modules/{Module}/Routes/hmvc.php
-|
 */
 
 // Health check endpoint
@@ -31,3 +27,25 @@ Route::get('/health', function () {
 // Library streaming endpoint
 Route::get('/v1/library/stream/{token}', [\App\Modules\Library\Controllers\Api\LibraryStreamController::class, 'stream'])
     ->name('library.stream');
+
+// Order Service Routes (punyamu)
+Route::prefix('cart')->group(function () {
+    Route::get('/', [CartController::class, 'index']);
+    Route::post('/items', [CartController::class, 'store']);
+    Route::patch('/items/{bookId}', [CartController::class, 'update']);
+    Route::delete('/items/{bookId}', [CartController::class, 'destroy']);
+});
+
+Route::prefix('checkout')->group(function () {
+    Route::post('/preview', [CheckoutController::class, 'preview']);
+    Route::post('/place-order', [CheckoutController::class, 'placeOrder']);
+});
+
+Route::prefix('vouchers')->group(function () {
+    Route::get('/', [VoucherController::class, 'index']);
+    Route::post('/', [VoucherController::class, 'store']);
+    Route::get('/{id}', [VoucherController::class, 'show']);
+    Route::patch('/{id}', [VoucherController::class, 'update']);
+    Route::delete('/{id}', [VoucherController::class, 'destroy']);
+    Route::post('/validate', [VoucherController::class, 'validateVoucher']);
+});
