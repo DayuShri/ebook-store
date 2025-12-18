@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/payment/callback', [PaymentController::class, 'callback']);
 
-Route::post('/payments', [PaymentController::class, 'store']);
+Route::post('/payment/deduct', [PaymentController::class, 'deduct']);
 
 // login (Sanctum)
 Route::middleware(['auth:sanctum', 'token.valid'])->group(function () {
@@ -18,5 +18,5 @@ Route::middleware(['auth:sanctum', 'token.valid'])->group(function () {
     });
 
     // Top Up (Proses pembuatan invoice Xendit)
-    Route::post('/payment/topup', [PaymentController::class, 'topUp']);
+    Route::post('/payment/credit', [PaymentController::class, 'topUp']);
 });

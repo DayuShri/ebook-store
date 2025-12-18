@@ -112,6 +112,13 @@ class PaymentService
     public function processOrderPayment($orderId, $amount, $userId)
     {
         return DB::transaction(function () use ($orderId, $amount, $userId) {
+            // Ambil saldo wallet user saat ini
+            $wallet = DB::table('wallets')->where('user_id', $userId)->first();
+
+            if (!$wallet || $wallet->balance < $amount) {
+                throw new \Exception("Saldo Wallet tidak mencukupi untuk melakukan pembayaran.");
+            }
+
             // Potong saldo melalui WalletService
             $this->walletService->deductBalance(
                 $userId, 
@@ -119,6 +126,12 @@ class PaymentService
                 $orderId, 
                 "Pembelian Buku Order #" . $orderId
             );
+
+            // Update status di tabel orders menjadi 'paid'
+            DB::table('orders')->where('id', $orderId)->update([
+                'status' => 'paid',
+                'updated_at' => now(),
+            ]);
 
             return Payment::create([
                 'id' => Str::uuid(), 
