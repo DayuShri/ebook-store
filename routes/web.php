@@ -44,6 +44,11 @@ Route::middleware('guest')->group(function () {
 Route::post('/auth/login', [ApiAuthController::class, 'login'])->name('auth.login');
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 
+// Payment success callback (from Xendit)
+Route::get('/payment/success', function () {
+    return view('frontend.payment.success');
+})->name('payment.success');
+
 // ============================================================================
 // AUTHENTICATED ROUTES
 // ============================================================================
