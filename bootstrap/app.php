@@ -25,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/v1/payment/callback',
             'api/payment/callback'
         ]);
+        
+        // Enable CORS for API routes
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Force JSON responses for API routes

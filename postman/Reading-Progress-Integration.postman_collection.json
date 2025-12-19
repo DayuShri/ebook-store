@@ -1,0 +1,348 @@
+{
+	"info": {
+		"name": "Reading Progress Integration Test",
+		"description": "Test reading progress tracking with Library module integration",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Admin - Upload Book File",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{admin_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "book_id",
+							"value": "{{book_id}}",
+							"type": "text"
+						},
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/library/files",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "library", "files"]
+				}
+			}
+		},
+		{
+			"name": "2. Admin - Grant Book to User",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{admin_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"book_id\": \"{{book_id}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/library",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "library"]
+				}
+			}
+		},
+		{
+			"name": "3. User - Start Reading Session",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"device_info\": \"Postman/Chrome\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/reading/start",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reading", "start"]
+				}
+			}
+		},
+		{
+			"name": "4. User - Update Progress (Page 10)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"current_page\": 10\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/reading/progress",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reading", "progress"]
+				}
+			}
+		},
+		{
+			"name": "5. User - Update Progress (Page 50)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"current_page\": 50\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/reading/progress",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reading", "progress"]
+				}
+			}
+		},
+		{
+			"name": "6. User - Update Progress (Page 100)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"current_page\": 100\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/reading/progress",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reading", "progress"]
+				}
+			}
+		},
+		{
+			"name": "7. User - Get Current Progress",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/reading/progress/{{book_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reading", "progress", "{{book_id}}"]
+				}
+			}
+		},
+		{
+			"name": "8. User - Finish Reading Session",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"last_page_read\": 200\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/reading/finish",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reading", "finish"]
+				}
+			}
+		},
+		{
+			"name": "9. User - Write Review",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{user_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"rating\": 5,\n    \"review_text\": \"Amazing book! Really enjoyed reading it.\",\n    \"is_anonymous\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/reviews",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reviews"]
+				}
+			}
+		},
+		{
+			"name": "10. Get Book Reviews",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/reviews/{{book_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reviews", "{{book_id}}"]
+				}
+			}
+		},
+		{
+			"name": "Test - User Without Access",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{another_user_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"device_info\": \"Test\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/reading/start",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "reading", "start"]
+				},
+				"description": "This should fail with: You do not have access to read this book"
+			}
+		},
+		{
+			"name": "Admin - Revoke Access",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{admin_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"book_id\": \"{{book_id}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/library/revoke",
+					"host": ["{{base_url}}"],
+					"path": ["api", "v1", "library", "revoke"]
+				}
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "another_user_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "book_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

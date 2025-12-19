@@ -5,9 +5,10 @@ use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\CatalogController;
 use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\WalletController;
-use App\Http\Controllers\Frontend\LibraryController;
+use App\Http\Controllers\Frontend\LibraryWebController;
 use App\Http\Controllers\Frontend\ProfileController;
 use App\Http\Controllers\Frontend\AuthController;
+use App\Http\Controllers\Frontend\ApiAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,10 +37,12 @@ Route::get('/category/{slug}', [CatalogController::class, 'category'])->name('ca
 // Auth (Guest only)
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
 });
+
+// Auth actions (API-based)
+Route::post('/auth/login', [ApiAuthController::class, 'login'])->name('auth.login');
+Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 
 // Payment success callback (from Xendit)
 Route::get('/payment/success', function () {
@@ -72,9 +75,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/wallet/topup', [WalletController::class, 'topup'])->name('wallet.topup.submit');
 
     // Library
-    Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
-    Route::get('/library/read/{bookId}', [LibraryController::class, 'read'])->name('library.read');
-    Route::post('/library/progress/{bookId}', [LibraryController::class, 'updateProgress'])->name('library.progress');
+    Route::get('/library', [LibraryWebController::class, 'index'])->name('library.index');
+    Route::get('/library/read/{bookId}', [LibraryWebController::class, 'read'])->name('library.read');
+    Route::post('/library/progress/{bookId}', [LibraryWebController::class, 'updateProgress'])->name('library.progress');
+    Route::get('/library/reviews/{bookId}', [LibraryWebController::class, 'reviews'])->name('library.reviews');
+    Route::post('/library/reviews/{bookId}', [LibraryWebController::class, 'storeReview'])->name('library.reviews.store');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
@@ -101,18 +106,4 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         }
         return view('frontend.admin.dashboard');
     })->name('dashboard');
-
-    // User Management
-    Route::get('/users', [AdminController::class, 'users'])->name('users');
-    Route::get('/users/create', [AdminController::class, 'createUserForm'])->name('users.create');
-    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
-    Route::get('/users/{id}', [AdminController::class, 'showUser'])->name('users.show');
-    Route::get('/users/{id}/edit', [AdminController::class, 'editUserForm'])->name('users.edit');
-    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
-    Route::post('/users/{id}/activate', [AdminController::class, 'activateUser'])->name('users.activate');
-    Route::post('/users/{id}/deactivate', [AdminController::class, 'deactivateUser'])->name('users.deactivate');
-    Route::post('/users/{id}/promote', [AdminController::class, 'promoteUser'])->name('users.promote');
-    Route::post('/users/{id}/demote', [AdminController::class, 'demoteUser'])->name('users.demote');
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
 });
-

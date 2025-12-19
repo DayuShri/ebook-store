@@ -28,3 +28,6 @@ Route::get('/health', function () {
     ]);
 });
 
+// Library streaming endpoint
+Route::get('/v1/library/stream/{token}', [\App\Modules\Library\Controllers\Api\LibraryStreamController::class, 'stream'])
+    ->name('library.stream');
