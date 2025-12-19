@@ -88,14 +88,31 @@ Route::middleware('auth')->group(function () {
 });
 
 // ============================================================================
-// ADMIN ROUTES (placeholder)
+// ADMIN ROUTES
 // ============================================================================
 
+use App\Http\Controllers\Frontend\AdminController;
+
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard (with inline admin check)
     Route::get('/', function () {
         if (auth()->user()->role !== 'admin') {
             abort(403);
         }
         return view('frontend.admin.dashboard');
     })->name('dashboard');
+
+    // User Management
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::get('/users/create', [AdminController::class, 'createUserForm'])->name('users.create');
+    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
+    Route::get('/users/{id}', [AdminController::class, 'showUser'])->name('users.show');
+    Route::get('/users/{id}/edit', [AdminController::class, 'editUserForm'])->name('users.edit');
+    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::post('/users/{id}/activate', [AdminController::class, 'activateUser'])->name('users.activate');
+    Route::post('/users/{id}/deactivate', [AdminController::class, 'deactivateUser'])->name('users.deactivate');
+    Route::post('/users/{id}/promote', [AdminController::class, 'promoteUser'])->name('users.promote');
+    Route::post('/users/{id}/demote', [AdminController::class, 'demoteUser'])->name('users.demote');
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
 });
+

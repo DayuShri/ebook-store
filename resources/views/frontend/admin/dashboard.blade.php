@@ -78,7 +78,7 @@
                 </svg>
                 <span class="block mt-2 text-sm font-medium">Tambah Buku</span>
             </a>
-            <a href="#" class="p-4 border border-gray-200 rounded-lg text-center hover:border-primary-500 hover:bg-primary-50 transition-colors">
+            <a href="{{ route('admin.users') }}" class="p-4 border border-gray-200 rounded-lg text-center hover:border-primary-500 hover:bg-primary-50 transition-colors">
                 <svg class="w-8 h-8 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                 </svg>

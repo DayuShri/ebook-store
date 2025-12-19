@@ -35,13 +35,19 @@ class UserFrontendService
             return $this->getMockProfile();
         }
 
+        // Format date_of_birth as Y-m-d string for HTML date input
+        $dateOfBirth = $user->profile?->date_of_birth;
+        if ($dateOfBirth instanceof \Carbon\Carbon) {
+            $dateOfBirth = $dateOfBirth->format('Y-m-d');
+        }
+
         return [
             'id' => $user->id,
             'email' => $user->email,
             'role' => $user->role ?? 'user',
             'full_name' => $user->profile?->full_name ?? 'Pengguna',
             'phone_number' => $user->profile?->phone_number ?? null,
-            'date_of_birth' => $user->profile?->date_of_birth ?? null,
+            'date_of_birth' => $dateOfBirth,
             'profile_picture_url' => $user->profile?->profile_picture_url ?? null,
             'created_at' => $user->created_at?->toDateTimeString(),
         ];
@@ -52,13 +58,45 @@ class UserFrontendService
      */
     public function updateProfile(array $data): array
     {
-        // In real implementation, this would call API
-        // For now, just return success
-        return [
-            'success' => true,
-            'message' => 'Profil berhasil diperbarui',
-            'profile' => array_merge($this->getProfile(), $data),
-        ];
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User tidak ditemukan',
+                ];
+            }
+
+            // Get or create user profile
+            $profile = $user->profile;
+
+            if (!$profile) {
+                $profile = \App\Models\UserProfile::create([
+                    'user_id' => $user->id,
+                    'full_name' => $data['full_name'] ?? 'Pengguna',
+                    'phone_number' => $data['phone_number'] ?? null,
+                    'date_of_birth' => $data['date_of_birth'] ?? null,
+                ]);
+            } else {
+                $profile->update([
+                    'full_name' => $data['full_name'] ?? $profile->full_name,
+                    'phone_number' => $data['phone_number'] ?? $profile->phone_number,
+                    'date_of_birth' => $data['date_of_birth'] ?? $profile->date_of_birth,
+                ]);
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Profil berhasil diperbarui',
+                'profile' => $this->getProfile(),
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Gagal memperbarui profil: ' . $e->getMessage(),
+            ];
+        }
     }
 
     /**
