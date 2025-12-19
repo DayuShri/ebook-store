@@ -2,19 +2,26 @@
 
 namespace App\Services\Frontend;
 
+use App\Modules\Wishlist\Services\WishlistService;
+use App\Modules\Wishlist\Exceptions\BookAlreadyInWishlistException;
+use App\Modules\Wishlist\Exceptions\BookNotFoundException;
+use App\Modules\Wishlist\Exceptions\BookNotInWishlistException;
+use App\Modules\Wishlist\Exceptions\WishlistException;
+use Illuminate\Support\Facades\Log;
+
 /**
- * User Frontend Service - Mock Data Layer
+ * User Frontend Service
  * 
- * This service provides mock user profile and wishlist functionality.
+ * This service provides user profile and wishlist functionality.
+ * Wishlist operations are integrated with the Wishlist HMVC module.
  */
 class UserFrontendService
 {
-    private const WISHLIST_KEY = 'user_wishlist';
-    private CatalogService $catalogService;
+    private WishlistService $wishlistService;
 
-    public function __construct(CatalogService $catalogService)
+    public function __construct(WishlistService $wishlistService)
     {
-        $this->catalogService = $catalogService;
+        $this->wishlistService = $wishlistService;
     }
 
     /**
@@ -22,7 +29,6 @@ class UserFrontendService
      */
     public function getProfile(): array
     {
-        // In real implementation, this would fetch from API
         $user = auth()->user();
         
         if (!$user) {
@@ -60,17 +66,18 @@ class UserFrontendService
      */
     public function getWishlist(): array
     {
-        $wishlist = session(self::WISHLIST_KEY, $this->getMockWishlist());
-        $items = [];
-
-        foreach ($wishlist as $bookId) {
-            $book = $this->catalogService->getBook($bookId);
-            if ($book) {
-                $items[] = $book;
-            }
+        $user = auth()->user();
+        
+        if (!$user) {
+            return [];
         }
 
-        return $items;
+        try {
+            return $this->wishlistService->getUserWishlist($user->id);
+        } catch (WishlistException $e) {
+            Log::error('Failed to get wishlist', ['error' => $e->getMessage()]);
+            return [];
+        }
     }
 
     /**
@@ -78,21 +85,23 @@ class UserFrontendService
      */
     public function addToWishlist(string $bookId): array
     {
-        $wishlist = session(self::WISHLIST_KEY, $this->getMockWishlist());
+        $user = auth()->user();
         
-        if (in_array($bookId, $wishlist)) {
+        if (!$user) {
+            return ['success' => false, 'message' => 'Silakan login terlebih dahulu'];
+        }
+
+        try {
+            $this->wishlistService->addToWishlist($user->id, $bookId);
+            return ['success' => true, 'message' => 'Buku ditambahkan ke wishlist'];
+        } catch (BookAlreadyInWishlistException $e) {
             return ['success' => false, 'message' => 'Buku sudah ada di wishlist'];
-        }
-
-        $book = $this->catalogService->getBook($bookId);
-        if (!$book) {
+        } catch (BookNotFoundException $e) {
             return ['success' => false, 'message' => 'Buku tidak ditemukan'];
+        } catch (WishlistException $e) {
+            Log::error('Failed to add to wishlist', ['error' => $e->getMessage()]);
+            return ['success' => false, 'message' => 'Gagal menambahkan ke wishlist'];
         }
-
-        $wishlist[] = $bookId;
-        session([self::WISHLIST_KEY => $wishlist]);
-
-        return ['success' => true, 'message' => 'Buku ditambahkan ke wishlist'];
     }
 
     /**
@@ -100,12 +109,21 @@ class UserFrontendService
      */
     public function removeFromWishlist(string $bookId): array
     {
-        $wishlist = session(self::WISHLIST_KEY, $this->getMockWishlist());
+        $user = auth()->user();
         
-        $wishlist = array_values(array_filter($wishlist, fn($id) => $id !== $bookId));
-        session([self::WISHLIST_KEY => $wishlist]);
+        if (!$user) {
+            return ['success' => false, 'message' => 'Silakan login terlebih dahulu'];
+        }
 
-        return ['success' => true, 'message' => 'Buku dihapus dari wishlist'];
+        try {
+            $this->wishlistService->removeFromWishlist($user->id, $bookId);
+            return ['success' => true, 'message' => 'Buku dihapus dari wishlist'];
+        } catch (BookNotInWishlistException $e) {
+            return ['success' => false, 'message' => 'Buku tidak ada di wishlist'];
+        } catch (WishlistException $e) {
+            Log::error('Failed to remove from wishlist', ['error' => $e->getMessage()]);
+            return ['success' => false, 'message' => 'Gagal menghapus dari wishlist'];
+        }
     }
 
     /**
@@ -113,8 +131,18 @@ class UserFrontendService
      */
     public function isInWishlist(string $bookId): bool
     {
-        $wishlist = session(self::WISHLIST_KEY, $this->getMockWishlist());
-        return in_array($bookId, $wishlist);
+        $user = auth()->user();
+        
+        if (!$user) {
+            return false;
+        }
+
+        try {
+            return $this->wishlistService->isInWishlist($user->id, $bookId);
+        } catch (WishlistException $e) {
+            Log::error('Failed to check wishlist', ['error' => $e->getMessage()]);
+            return false;
+        }
     }
 
     /**
@@ -122,12 +150,22 @@ class UserFrontendService
      */
     public function getWishlistCount(): int
     {
-        $wishlist = session(self::WISHLIST_KEY, $this->getMockWishlist());
-        return count($wishlist);
+        $user = auth()->user();
+        
+        if (!$user) {
+            return 0;
+        }
+
+        try {
+            return $this->wishlistService->getWishlistCount($user->id);
+        } catch (WishlistException $e) {
+            Log::error('Failed to get wishlist count', ['error' => $e->getMessage()]);
+            return 0;
+        }
     }
 
     /**
-     * Mock profile data
+     * Mock profile data (for unauthenticated users)
      */
     private function getMockProfile(): array
     {
@@ -140,18 +178,6 @@ class UserFrontendService
             'date_of_birth' => '1990-05-15',
             'profile_picture_url' => null,
             'created_at' => now()->subMonths(6)->toDateTimeString(),
-        ];
-    }
-
-    /**
-     * Mock wishlist data
-     */
-    private function getMockWishlist(): array
-    {
-        return [
-            'book-001', // Laskar Pelangi
-            'book-005', // Rich Dad Poor Dad
-            'book-008', // Machine Learning dengan Python
         ];
     }
 }
