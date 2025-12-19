@@ -1,9 +1,22 @@
 <?php
 
 use App\Modules\Payment\Controllers\Http\WalletController;
+use App\Modules\Payment\Controllers\Http\PaymentController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('wallet')->middleware(['auth:sanctum', 'token.valid'])->group(function () {
-    Route::get('/me', [WalletController::class, 'index']);
-    Route::post('/topup-simulation', [WalletController::class, 'topupSimulation']);
+Route::post('/payment/callback', [PaymentController::class, 'callback']);
+
+Route::post('/payment/deduct', [PaymentController::class, 'deduct']);
+
+// login (Sanctum)
+Route::middleware(['auth:sanctum', 'token.valid'])->group(function () {
+    
+    // Wallet (Melihat saldo & simulasi)
+    Route::prefix('wallet')->group(function () {
+        Route::get('/me', [WalletController::class, 'index']);
+        Route::post('/topup-simulation', [WalletController::class, 'topupSimulation']);
+    });
+
+    // Top Up (Proses pembuatan invoice Xendit)
+    Route::post('/payment/credit', [PaymentController::class, 'topUp']);
 });
