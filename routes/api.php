@@ -49,3 +49,5 @@ Route::prefix('vouchers')->group(function () {
     Route::delete('/{id}', [VoucherController::class, 'destroy']);
     Route::post('/validate', [VoucherController::class, 'validateVoucher']);
 });
+
+

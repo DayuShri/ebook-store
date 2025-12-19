@@ -9,9 +9,17 @@ class WalletTransaction extends Model
 {
     use HasUuids;
 
+    // --- TAMBAHKAN KODE INI ---
+    /**
+     * Memberitahu Laravel bahwa tabel ini tidak memiliki kolom 'updated_at'.
+     * Laravel tetap akan mengisi 'created_at'.
+     */
+    const UPDATED_AT = null;
+    // --------------------------
+
     protected $fillable = [
         'wallet_id',
-        'transaction_type', // 'top_up' atau 'payment'
+        'transaction_type', 
         'amount',
         'balance_before',
         'balance_after',
