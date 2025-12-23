@@ -8,7 +8,7 @@ class CatalogClient
 {
     public function bulk(array $bookIds): array
     {
-        $url = config('services.catalog.base_url') . '/api/books/bulk';
+        $url = config('services.catalog.base_url') . '/api/v1/catalog/books/bulk';
 
         $resp = Http::acceptJson()
             ->timeout(5)
