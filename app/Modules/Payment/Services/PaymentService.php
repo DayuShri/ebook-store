@@ -6,7 +6,7 @@ use Xendit\Configuration;
 use Xendit\Invoice\InvoiceApi;
 use Xendit\Invoice\CreateInvoiceRequest;
 use App\Modules\Payment\Models\Payment;
-use App\Modules\Payment\Services\WalletService;
+use App\Modules\Payment\Services\WalletService; // Import Service temanmu
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -16,14 +16,16 @@ class PaymentService
 {
     protected $config;
     protected $walletService;
+    protected $libraryService;
 
-    public function __construct(WalletService $walletService)
+    public function __construct(WalletService $walletService) // Inject WalletService melalui constructor
     {
         $this->walletService = $walletService;
 
         // Setup Konfigurasi Xendit
         $this->config = Configuration::getDefaultConfiguration();
         $this->config->setApiKey(config('services.xendit.key'));
+        $this->walletService = $walletService;
     }
 
     public function createTopUp($amount)
@@ -77,8 +79,7 @@ class PaymentService
             return $payment;
 
         } catch (\Xendit\XenditSdkException $e) {
-            // Error handling diperbaiki agar tidak crash saat konversi ke string
-            throw new \Exception("Xendit Error: " . $e->getMessage());
+            throw new \Exception("Xendit Error: " . $e->getFullError());
         } catch (\Exception $e) {
             throw new \Exception("Gagal menghubungi Xendit: " . $e->getMessage());
         }
@@ -147,6 +148,12 @@ class PaymentService
                 'status' => 'paid',
                 'updated_at' => now(),
             ]);
+
+            // Ambil semua book_id dari order_items dan grant ke library
+            $orderItems = OrderItem::where('order_id', $orderId)->get();
+            foreach ($orderItems as $item) {
+                $this->libraryService->grant($userId, $item->book_id, $orderId);
+            }
 
             return Payment::create([
                 'id' => Str::uuid(), 

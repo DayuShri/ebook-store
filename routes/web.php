@@ -93,10 +93,13 @@ Route::middleware('auth')->group(function () {
 });
 
 // ============================================================================
-// ADMIN ROUTES (placeholder)
+// ADMIN ROUTES
 // ============================================================================
 
+use App\Http\Controllers\Frontend\AdminController;
+
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard (with inline admin check)
     Route::get('/', function () {
         if (auth()->user()->role !== 'admin') {
             abort(403);

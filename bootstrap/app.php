@@ -20,6 +20,19 @@ return Application::configure(basePath: dirname(__DIR__))
             'token.valid' => \App\Http\Middleware\EnsureTokenIsValid::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
+<<<<<<< HEAD
+=======
+
+        $middleware->validateCsrfTokens(except: [
+            'api/v1/payment/callback',
+            'api/payment/callback'
+        ]);
+        
+        // Enable CORS for API routes
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+>>>>>>> 2347f10c6476bdca24e206f24d6746d0805d9124
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Force JSON responses for API routes
@@ -58,4 +71,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], $statusCode);
             }
         });
+<<<<<<< HEAD
     })->create();
+=======
+    })->create();
+>>>>>>> 2347f10c6476bdca24e206f24d6746d0805d9124
