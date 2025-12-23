@@ -4,23 +4,6 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 
-<<<<<<< HEAD
-class CatalogClient
-{
-    public function bulk(array $bookIds): array
-    {
-        $url = config('services.catalog.base_url') . '/api/v1/catalog/books/bulk';
-
-        $resp = Http::acceptJson()
-            ->timeout(5)
-            ->post($url, ['book_ids' => $bookIds]);
-
-        if ($resp->failed()) {
-            abort(503, 'Catalog service unavailable');
-        }
-
-        return $resp->json('items') ?? [];
-=======
 /**
  * HMVC Client for inter-module communication with Catalog module.
  * Per INSTRUCTION.md: Use HMVC API for communication between modules.
@@ -95,6 +78,5 @@ class CatalogClient
         }
 
         return $response->json('exists') ?? false;
->>>>>>> 2347f10c6476bdca24e206f24d6746d0805d9124
     }
 }

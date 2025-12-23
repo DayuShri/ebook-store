@@ -4,23 +4,6 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 
-<<<<<<< HEAD
-class PaymentClient
-{
-    public function createPayment(array $payload): array
-    {
-        $url = config('services.payment.base_url') . '/api/payments';
-
-        $resp = Http::acceptJson()
-            ->timeout(5)
-            ->post($url, $payload);
-
-        if ($resp->failed()) {
-            abort(503, 'Payment service unavailable');
-        }
-
-        return $resp->json() ?? [];
-=======
 /**
  * HMVC Client for inter-module communication with Payment module.
  * Per INSTRUCTION.md: Use HMVC API for communication between modules.
@@ -122,6 +105,5 @@ class PaymentClient
         }
 
         return $response->json();
->>>>>>> 2347f10c6476bdca24e206f24d6746d0805d9124
     }
 }
