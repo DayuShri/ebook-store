@@ -18,6 +18,7 @@ class UserController extends Controller
     public function show(Request $request): JsonResponse
     {
         return response()->json([
+            'success' => true,
             'data' => new UserResource($request->user()->load('profile')),
         ]);
     }
@@ -51,13 +52,14 @@ class UserController extends Controller
             }
 
             return response()->json([
+                'success' => true,
                 'message' => 'Profile updated successfully',
                 'data' => new UserProfileResource($profile->fresh()),
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Profile update failed',
-                'error' => $e->getMessage(),
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -71,11 +73,13 @@ class UserController extends Controller
 
         if (!$profile) {
             return response()->json([
+                'success' => false,
                 'message' => 'Profile not found',
             ], 404);
         }
 
         return response()->json([
+            'success' => true,
             'data' => new UserProfileResource($profile),
         ]);
     }
@@ -95,12 +99,13 @@ class UserController extends Controller
             $user->refreshTokens()->update(['is_revoked' => true]);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Account deactivated successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Account deactivation failed',
-                'error' => $e->getMessage(),
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

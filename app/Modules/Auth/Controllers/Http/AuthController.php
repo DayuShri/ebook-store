@@ -41,40 +41,38 @@ class AuthController extends Controller
             \Log::info('HTTP Registration successful', ['email' => $request->email]);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Registration successful',
                 'data' => $data,
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // This should be caught by the FormRequest, but handle it just in case
             \Log::warning('HTTP Registration validation error', [
                 'email' => $request->email,
                 'errors' => $e->errors(),
             ]);
             
             return response()->json([
+                'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Illuminate\Database\QueryException $e) {
-            // Database error (e.g., duplicate email, constraint violation)
             \Log::error('HTTP Registration database error', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
                 'code' => $e->getCode(),
             ]);
             
-            // Check if it's a duplicate email error
             if ($e->getCode() == 23000 || str_contains($e->getMessage(), 'Duplicate entry')) {
                 return response()->json([
-                    'message' => 'Registration failed',
-                    'error' => 'Email address is already registered',
+                    'success' => false,
+                    'message' => 'Email address is already registered',
                 ], 422);
             }
             
             return response()->json([
-                'message' => 'Registration failed',
-                'error' => 'Database error occurred',
-                'details' => config('app.debug') ? $e->getMessage() : null,
+                'success' => false,
+                'message' => 'Database error occurred',
             ], 500);
         } catch (\Exception $e) {
             \Log::error('HTTP Registration failed', [
@@ -84,8 +82,8 @@ class AuthController extends Controller
             ]);
             
             return response()->json([
-                'message' => 'Registration failed',
-                'error' => $e->getMessage(),
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -109,6 +107,7 @@ class AuthController extends Controller
             \Log::info('HTTP Login successful', ['email' => $request->email]);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Login successful',
                 'data' => $data,
             ]);
@@ -121,6 +120,7 @@ class AuthController extends Controller
             $statusCode = in_array($e->getCode(), [401, 403]) ? $e->getCode() : 500;
             
             return response()->json([
+                'success' => false,
                 'message' => $e->getMessage(),
             ], $statusCode);
         }
@@ -139,11 +139,13 @@ class AuthController extends Controller
             $data = $this->authService->refresh($request->refresh_token);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Token refreshed successfully',
                 'data' => $data,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
+                'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
@@ -156,6 +158,7 @@ class AuthController extends Controller
             $statusCode = in_array($e->getCode(), [401, 403]) ? $e->getCode() : 500;
             
             return response()->json([
+                'success' => false,
                 'message' => $e->getMessage(),
             ], $statusCode);
         }
@@ -170,12 +173,13 @@ class AuthController extends Controller
             $this->authService->logout($request->user());
 
             return response()->json([
+                'success' => true,
                 'message' => 'Logout successful',
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Logout failed',
-                'error' => $e->getMessage(),
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -188,6 +192,7 @@ class AuthController extends Controller
         $user = $request->user()->load('profile');
         
         return response()->json([
+            'success' => true,
             'data' => array_merge(
                 (new UserResource($user))->toArray($request),
                 ['role' => $user->role]

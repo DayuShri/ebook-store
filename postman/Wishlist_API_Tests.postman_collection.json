@@ -1,0 +1,890 @@
+{
+    "info": {
+        "_postman_id": "ebook-store-wishlist-tests",
+        "name": "Ebook Store - Wishlist API Tests",
+        "description": "API testing collection for Wishlist functionality.\n\n## How to Use:\n1. Set the `base_url` environment variable\n2. Run 'Login User' first to get the auth token\n3. Get a valid `book_id` from the Catalog API\n4. Test wishlist operations in sequence\n\n## Endpoints:\n- GET /wishlist - Get user's wishlist\n- POST /wishlist - Add book to wishlist\n- DELETE /wishlist/{bookId} - Remove book from wishlist\n- GET /wishlist/check/{bookId} - Check if book is in wishlist\n- GET /wishlist/count - Get wishlist item count\n- DELETE /wishlist - Clear entire wishlist",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "https://8soqnjdlpd.sharedwithexpose.com/api/v1"
+        },
+        {
+            "key": "access_token",
+            "value": ""
+        },
+        {
+            "key": "book_id",
+            "value": ""
+        }
+    ],
+    "item": [
+        {
+            "name": "🔐 Authentication",
+            "description": "Get access token for testing wishlist APIs",
+            "item": [
+                {
+                    "name": "Login User",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has login data', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData).to.have.property('data');",
+                                    "    pm.expect(jsonData.data).to.have.property('access_token');",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.access_token) {",
+                                    "    pm.collectionVariables.set('access_token', jsonData.data.access_token);",
+                                    "    console.log('Token saved successfully');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"wallet_test@example.com\",\n    \"password\": \"Test@123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Login with existing user credentials to get access token."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "❤️ Wishlist",
+            "description": "Wishlist management endpoints",
+            "item": [
+                {
+                    "name": "Get Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has success flag', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.true;",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has wishlist data', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData).to.have.property('data');",
+                                    "    pm.expect(jsonData.data).to.be.an('array');",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "console.log('Wishlist items: ' + jsonData.data.length);",
+                                    "",
+                                    "// Save first book_id if available",
+                                    "if (jsonData.data.length > 0 && jsonData.data[0].book_id) {",
+                                    "    pm.collectionVariables.set('book_id', jsonData.data[0].book_id);",
+                                    "    console.log('Book ID saved: ' + jsonData.data[0].book_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        },
+                        "description": "Get the authenticated user's wishlist with book details.\n\n**Response includes:**\n- Wishlist item ID\n- Book ID\n- Added timestamp\n- Full book details (from Catalog service)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Wishlist Count",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has count', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.true;",
+                                    "    pm.expect(jsonData.data).to.have.property('count');",
+                                    "    pm.expect(typeof jsonData.data.count).to.equal('number');",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "console.log('Wishlist count: ' + jsonData.data.count);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/count",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "count"
+                            ]
+                        },
+                        "description": "Get the total number of items in the user's wishlist."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add Book to Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "pm.test('Book added successfully', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.true;",
+                                    "    pm.expect(jsonData.message).to.equal('Book added to wishlist successfully');",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has wishlist item data', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData).to.have.property('data');",
+                                    "    pm.expect(jsonData.data).to.have.property('id');",
+                                    "    pm.expect(jsonData.data).to.have.property('book_id');",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.book_id) {",
+                                    "    pm.collectionVariables.set('book_id', jsonData.data.book_id);",
+                                    "    console.log('Added book ID: ' + jsonData.data.book_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"book_id\": \"{{book_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        },
+                        "description": "Add a book to the user's wishlist.\n\n**Requirements:**\n- Valid book_id (must exist in Catalog)\n- Book must not already be in wishlist\n\n**Note:** Set the `book_id` variable before running this request."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add Book - Already in Wishlist Error",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 409', function () {",
+                                    "    pm.response.to.have.status(409);",
+                                    "});",
+                                    "",
+                                    "pm.test('Error indicates duplicate', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.false;",
+                                    "    pm.expect(jsonData.message.toLowerCase()).to.include('already');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"book_id\": \"{{book_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        },
+                        "description": "Test error case: Adding the same book twice should return 409 Conflict."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add Book - Not Found Error",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 404', function () {",
+                                    "    pm.response.to.have.status(404);",
+                                    "});",
+                                    "",
+                                    "pm.test('Error indicates book not found', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.false;",
+                                    "    pm.expect(jsonData.message.toLowerCase()).to.include('not found');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"book_id\": \"00000000-0000-0000-0000-000000000000\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        },
+                        "description": "Test error case: Adding a non-existent book should return 404 Not Found."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Check Book in Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has in_wishlist flag', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.true;",
+                                    "    pm.expect(jsonData.data).to.have.property('in_wishlist');",
+                                    "    pm.expect(typeof jsonData.data.in_wishlist).to.equal('boolean');",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "console.log('Book in wishlist: ' + jsonData.data.in_wishlist);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/check/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "check",
+                                "{{book_id}}"
+                            ]
+                        },
+                        "description": "Check if a specific book is in the user's wishlist.\n\n**Returns:** Boolean `in_wishlist` flag"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove Book from Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Book removed successfully', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.true;",
+                                    "    pm.expect(jsonData.message).to.equal('Book removed from wishlist successfully');",
+                                    "});",
+                                    "",
+                                    "console.log('Book removed from wishlist');"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "{{book_id}}"
+                            ]
+                        },
+                        "description": "Remove a specific book from the user's wishlist."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove Book - Not in Wishlist Error",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 404', function () {",
+                                    "    pm.response.to.have.status(404);",
+                                    "});",
+                                    "",
+                                    "pm.test('Error indicates book not in wishlist', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.false;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/00000000-0000-0000-0000-000000000000",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "00000000-0000-0000-0000-000000000000"
+                            ]
+                        },
+                        "description": "Test error case: Removing a book that is not in wishlist should return 404."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Clear Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 200', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "pm.test('Wishlist cleared successfully', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.true;",
+                                    "    pm.expect(jsonData.message).to.equal('Wishlist cleared successfully');",
+                                    "});",
+                                    "",
+                                    "pm.test('Response has deleted count', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.data).to.have.property('deleted_count');",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "console.log('Deleted items: ' + jsonData.data.deleted_count);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        },
+                        "description": "Clear all items from the user's wishlist.\n\n**Returns:** Number of deleted items"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "🧪 Complete Wishlist Flow",
+            "description": "End-to-end test scenario for wishlist operations",
+            "item": [
+                {
+                    "name": "1. Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.access_token) {",
+                                    "    pm.collectionVariables.set('access_token', jsonData.data.access_token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"wallet_test@example.com\",\n    \"password\": \"Test@123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2. Check Initial Wishlist Count",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "pm.collectionVariables.set('initial_count', jsonData.data.count);",
+                                    "console.log('Initial wishlist count: ' + jsonData.data.count);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/count",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "count"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "3. Add Book to Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Book added', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.book_id) {",
+                                    "    pm.collectionVariables.set('book_id', jsonData.data.book_id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"book_id\": \"{{book_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4. Verify Book is in Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Book is in wishlist', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.data.in_wishlist).to.be.true;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/check/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "check",
+                                "{{book_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "5. Get Full Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Wishlist has items', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.data.length).to.be.above(0);",
+                                    "});",
+                                    "",
+                                    "var jsonData = pm.response.json();",
+                                    "console.log('Wishlist items: ' + jsonData.data.length);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "6. Remove Book from Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Book removed', function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "{{book_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "7. Verify Book Removed",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Book is not in wishlist', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.data.in_wishlist).to.be.false;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/check/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "wishlist",
+                                "check",
+                                "{{book_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
