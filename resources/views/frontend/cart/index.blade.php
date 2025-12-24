@@ -228,19 +228,25 @@
                                 totalEl.textContent = data.data.total;
                                 countEl.textContent = data.data.selected_count;
 
-                                if (data.data.discount !== '0') {
-                                    discountEl.textContent = data.data.discount;
-                                    discountRow.style.display = 'flex';
-                                } else {
-                                    discountRow.style.display = 'none';
+                            // Update Voucher UI based on response
+                            if (data.data.discount !== '0') {
+                                discountEl.textContent = data.data.discount;
+                                discountRow.style.display = 'flex';
+                            } else {
+                                discountRow.style.display = 'none';
+                                // Ideally we would also reload or clear the voucher UI block here
+                                // For now, we rely on the summary discount row disappearing
+                                if (data.message.includes('Voucher dihapus')) {
+                                   location.reload(); // Simple way to reset state completely
                                 }
                             }
-                        })
-                        .catch(error => console.error('Error:', error))
-                        .finally(() => {
-                            // Remove loading state
-                            summaryContainer.classList.remove('opacity-50', 'pointer-events-none');
-                        });
+                        }
+                    })
+                    .catch(error => console.error('Error:', error))
+                    .finally(() => {
+                        // Remove loading state
+                        summaryContainer.classList.remove('opacity-50', 'pointer-events-none');
+                    });
                 });
             });
         });

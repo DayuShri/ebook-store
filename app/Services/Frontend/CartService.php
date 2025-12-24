@@ -143,14 +143,41 @@ class CartService
                 break;
             }
         }
+        unset($item); // Break the reference to avoid corruption in next loop
 
         if (!$found) {
             return ['success' => false, 'message' => 'Buku tidak ditemukan di keranjang'];
         }
 
+        // Re-calculate totals to check voucher validity
+        $enrichedItems = [];
+        foreach ($cart['items'] as $cartItem) { // Use distinct variable name
+            $book = $this->catalogService->getBook($cartItem['book_id']);
+            if ($book) {
+                $enrichedItems[] = [
+                    'is_selected' => $cartItem['is_selected'] ?? true,
+                    'subtotal' => $this->calculateItemPrice($book) * $cartItem['quantity'],
+                ];
+            }
+        }
+
+        $selectedItems = array_filter($enrichedItems, fn($item) => $item['is_selected']);
+        $subtotal = array_sum(array_column($selectedItems, 'subtotal'));
+
+        $message = 'Pilihan diperbarui';
+
+        // Check if voucher is still valid
+        if ($cart['voucher']) {
+            if ($subtotal < $cart['voucher']['min_purchase_amount']) {
+                // Remove voucher if minimum purchase not met
+                $cart['voucher'] = null;
+                $message = 'Pilihan diperbarui. Voucher dihapus karena minimum belanja tidak terpenuhi.';
+            }
+        }
+
         session([self::SESSION_KEY => $cart]);
 
-        return ['success' => true, 'message' => 'Pilihan diperbarui'];
+        return ['success' => true, 'message' => $message];
     }
 
     /**
