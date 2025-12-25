@@ -60,11 +60,33 @@ class CatalogService
     }
 
     /**
-     * Public book detail
+     * Public book detail with review stats
      */
-    public function getBookDetail(string $id): Book
+    public function getBookDetail(string $id): array
     {
-        return Book::with('categories')->findOrFail($id);
+        $book = Book::with('categories')->findOrFail($id);
+        
+        // Get review statistics
+        $reviewStats = $this->reviewService->getReviewStats($id);
+        
+        return [
+            'id' => $book->id,
+            'title' => $book->title,
+            'subtitle' => $book->subtitle,
+            'author' => $book->author,
+            'publisher' => $book->publisher,
+            'synopsis' => $book->synopsis,
+            'price' => $book->price,
+            'discount_percentage' => $book->discount_percentage,
+            'cover_image_url' => $book->cover_image_url,
+            'publication_date' => $book->publication_date,
+            'page_count' => $book->page_count,
+            'is_active' => $book->is_active,
+            'categories' => $book->categories,
+            'avg_rating' => $reviewStats['average'],
+            'review_count' => $reviewStats['count'],
+            'review_distribution' => $reviewStats['distribution'],
+        ];
     }
 
     public function getPublicBooks(array $filters = [])
@@ -78,17 +100,36 @@ class CatalogService
             $query->where('title', 'like', '%' . $filters['search'] . '%');
         }
 
-        return $query->paginate(10);
+        $books = $query->paginate(10);
+        
+        // Enrich each book with rating
+        $books->getCollection()->transform(function ($book) {
+            return $this->enrichBookWithRating($book);
+        });
+        
+        return $books;
+    }
+    
+    /**
+     * Enrich book object with avg_rating
+     */
+    protected function enrichBookWithRating($book)
+    {
+        $book->avg_rating = $this->reviewService->getAverageRating($book->id);
+        return $book;
     }
 
 
 
     
     protected LibraryClient $library;
+    protected $reviewService;
 
     public function __construct(LibraryClient $library)
     {
         $this->library = $library;
+        // Inject ReviewService for rating data
+        $this->reviewService = app(\App\Modules\Review_Reading\Services\ReviewService::class);
     }
 
     public function detail(string $id, ?string $token = null)

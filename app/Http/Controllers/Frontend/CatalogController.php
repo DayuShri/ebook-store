@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Services\Frontend\CartService;
-use App\Services\Frontend\ReviewService;
 use App\Services\Frontend\UserFrontendService;
 use App\Modules\Catalog\Models\Book;
 use App\Modules\Catalog\Models\BookCategory;
+use App\Modules\Review_Reading\Services\ReviewService;
 use Illuminate\Http\Request;
 
 class CatalogController extends Controller
@@ -161,11 +161,29 @@ class CatalogController extends Controller
             ])->values()->toArray(),
         ];
 
-        // kalau review/wishlist belum dipakai, boleh kamu comment dulu
-        $reviewsData = $this->reviewService->getBookReviews($id);
+        // Get reviews from Review_Reading module
+        $reviews = app(ReviewService::class)->getBookReviews($id);
+        $reviewStats = app(ReviewService::class)->getReviewStats($id);
+        
+        // Check if user has library access (to show review form)
+        $hasAccess = false;
+        if (auth()->check()) {
+            $libraryService = app(\App\Modules\Library\Services\LibraryAccessServiceImpl::class);
+            $hasAccess = $libraryService->userHasBook(auth()->id(), $id);
+        }
+        
+        // Check user's existing review
+        $userReview = null;
+        if (auth()->check()) {
+            $userReview = \App\Modules\Review_Reading\Models\Review::where('user_id', auth()->id())
+                ->where('book_id', $id)
+                ->first();
+        }
+        
+        // Wishlist check
         $isInWishlist = auth()->check() ? $this->userService->isInWishlist($id) : false;
 
-        // Related books: ambil dari kategori pertama
+        // Related books: from first category
         $relatedBooks = [];
         if (!empty($book['categories'])) {
             $slug = $book['categories'][0]['slug'];
@@ -192,12 +210,10 @@ class CatalogController extends Controller
 
         return view('frontend.catalog.show', [
             'book' => $book,
-            'reviews' => $reviewsData['reviews'] ?? [],
-            'reviewStats' => [
-                'avg_rating' => $reviewsData['avg_rating'] ?? 0,
-                'total' => $reviewsData['total'] ?? 0,
-                'distribution' => $reviewsData['rating_distribution'] ?? [],
-            ],
+            'reviews' => $reviews,
+            'reviewStats' => $reviewStats,
+            'hasAccess' => $hasAccess,
+            'userReview' => $userReview,
             'isInWishlist' => $isInWishlist,
             'relatedBooks' => $relatedBooks,
             'cartCount' => $this->cartService->getItemCount(),

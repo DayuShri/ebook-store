@@ -3,6 +3,9 @@
 @section('title', $book['title'] ?? 'Detail Buku')
 
 @section('content')
+<script>
+    window.API_TOKEN = "{{ session('api_token') }}";
+</script>
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     {{-- Breadcrumb --}}
     <nav class="mb-6">
@@ -213,7 +216,7 @@
                     <button @click="activeTab = 'reviews'"
                             :class="activeTab === 'reviews' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                             class="py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                        Ulasan ({{ $reviewStats['total'] ?? 0 }})
+                        Ulasan ({{ $reviewStats['count'] ?? 0 }})
                     </button>
                 </nav>
             </div>
@@ -231,6 +234,43 @@
 
                 {{-- Reviews --}}
                 <div x-show="activeTab === 'reviews'" x-cloak>
+                    {{-- Review Stats --}}
+                    @if($reviewStats['count'] > 0)
+                        <div class="bg-white p-6 rounded-xl border border-gray-100 mb-6">
+                            <div class="flex items-center space-x-8">
+                                <div class="text-center">
+                                    <div class="text-5xl font-bold text-gray-900">{{ number_format($reviewStats['average'], 1) }}</div>
+                                    <div class="flex items-center justify-center mt-2">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <svg class="w-5 h-5 {{ $i <= floor($reviewStats['average']) ? 'text-yellow-400' : 'text-gray-300' }}" 
+                                                 fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                        @endfor
+                                    </div>
+                                    <div class="text-sm text-gray-500 mt-1">{{ $reviewStats['count'] }} review</div>
+                                </div>
+                                
+                                <div class="flex-1">
+                                    @foreach([5,4,3,2,1] as $star)
+                                        @php
+                                            $count = $reviewStats['distribution'][$star] ?? 0;
+                                            $percentage = $reviewStats['count'] > 0 ? ($count / $reviewStats['count']) * 100 : 0;
+                                        @endphp
+                                        <div class="flex items-center mb-2">
+                                            <div class="w-12 text-sm text-gray-600">{{ $star }} ★</div>
+                                            <div class="flex-1 mx-3 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                <div class="h-full bg-yellow-400" style="width: {{ $percentage }}%"></div>
+                                            </div>
+                                            <div class="w-12 text-sm text-gray-600 text-right">{{ $count }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Reviews List --}}
                     @if(!empty($reviews) && count($reviews) > 0)
                         <div class="space-y-6">
                             @foreach($reviews as $review)
@@ -238,26 +278,34 @@
                                     <div class="flex items-start justify-between">
                                         <div>
                                             <div class="flex items-center space-x-2">
-                                                <span class="font-semibold text-gray-900">{{ $review['user_name'] ?? 'User' }}</span>
-                                                @if($review['is_verified_purchase'] ?? false)
-                                                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Pembelian Terverifikasi</span>
+                                                <span class="font-semibold text-gray-900">
+                                                    {{ $review->user->profile->full_name ?? $review->user->email ?? 'User' }}
+                                                </span>
+                                                @if($review->is_verified_purchase)
+                                                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Verified Purchase</span>
                                                 @endif
                                             </div>
                                             <div class="flex items-center mt-1">
                                                 @for($i = 1; $i <= 5; $i++)
-                                                    <svg class="w-4 h-4 {{ $i <= ($review['rating'] ?? 0) ? 'text-yellow-400' : 'text-gray-300' }}" fill="currentColor" viewBox="0 0 20 20">
+                                                    <svg class="w-4 h-4 {{ $i <= $review->rating ? 'text-yellow-400' : 'text-gray-300' }}" fill="currentColor" viewBox="0 0 20 20">
                                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                                     </svg>
                                                 @endfor
-                                                @if(!empty($review['created_at']))
-                                                    <span class="ml-2 text-sm text-gray-500">{{ \Carbon\Carbon::parse($review['created_at'])->diffForHumans() }}</span>
-                                                @endif
+                                                <span class="ml-2 text-sm text-gray-500">{{ $review->created_at->diffForHumans() }}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <p class="mt-4 text-gray-700">{{ $review['review_text'] ?? '-' }}</p>
-                                    <div class="mt-4 flex items-center text-sm text-gray-500">
-                                        <span>{{ $review['helpful_count'] ?? 0 }} orang menganggap ini membantu</span>
+                                    @if($review->review_text)
+                                        <p class="mt-4 text-gray-700">{{ $review->review_text }}</p>
+                                    @endif
+                                    <div class="mt-4 flex items-center justify-between">
+                                        <span class="text-sm text-gray-500">{{ $review->helpful_count }} orang menganggap ini membantu</span>
+                                        @auth
+                                            <button onclick="markHelpful('{{ $review->id }}', true)" 
+                                                    class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                                                👍 Membantu
+                                            </button>
+                                        @endauth
                                     </div>
                                 </div>
                             @endforeach
@@ -287,6 +335,35 @@
 
 @push('scripts')
 <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script>
+function markHelpful(reviewId, isHelpful) {
+    fetch('/api/v1/reviews/helpful', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Authorization': 'Bearer ' + (window.API_TOKEN || '')
+        },
+        body: JSON.stringify({
+            review_id: reviewId,
+            is_helpful: isHelpful
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Terima kasih atas feedback Anda!');
+            location.reload();
+        } else {
+            alert(data.message || 'Gagal menyimpan feedback');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan');
+    });
+}
+</script>
 @endpush
 
 <style>

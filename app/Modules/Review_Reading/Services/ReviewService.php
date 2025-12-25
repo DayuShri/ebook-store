@@ -34,22 +34,6 @@ class ReviewService
                 'is_verified_purchase' => true // DUMMY
             ]
         );
-
-        // Update book's average rating
-        $this->updateBookAverageRating($data['book_id']);
-    }
-
-    /**
-     * Calculate and update average rating for a book
-     */
-    protected function updateBookAverageRating(string $bookId): void
-    {
-        $avgRating = Review::where('book_id', $bookId)->avg('rating');
-        
-        // Update the books table
-        DB::table('books')
-            ->where('id', $bookId)
-            ->update(['avg_rating' => $avgRating]);
     }
 
     public function helpful(string $userId, string $reviewId, bool $isHelpful): void
@@ -108,11 +92,7 @@ class ReviewService
             ->where('user_id', $userId)
             ->firstOrFail();
 
-        $bookId = $review->book_id;
         $review->delete();
-        
-        // Recalculate average rating after deletion
-        $this->updateBookAverageRating($bookId);
     }
 
     public function getUserReviews(string $userId)
@@ -137,5 +117,58 @@ class ReviewService
                     ]
                 ];
             });
+    }
+
+    /**
+     * Get average rating for a book
+     */
+    public function getAverageRating(string $bookId): ?float
+    {
+        $avg = Review::where('book_id', $bookId)->avg('rating');
+        return $avg ? round($avg, 1) : null;
+    }
+
+    /**
+     * Get review statistics for a book
+     */
+    public function getReviewStats(string $bookId): array
+    {
+        $reviews = Review::where('book_id', $bookId)->get();
+        
+        if ($reviews->isEmpty()) {
+            return [
+                'count' => 0,
+                'average' => null,
+                'distribution' => [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0]
+            ];
+        }
+
+        $distribution = [];
+        for ($i = 5; $i >= 1; $i--) {
+            $distribution[$i] = $reviews->where('rating', $i)->count();
+        }
+
+        return [
+            'count' => $reviews->count(),
+            'average' => round($reviews->avg('rating'), 1),
+            'distribution' => $distribution
+        ];
+    }
+
+    /**
+     * Get reviews for a book with user info
+     */
+    public function getBookReviews(string $bookId, ?int $limit = null)
+    {
+        $query = Review::with(['user.profile'])
+            ->where('book_id', $bookId)
+            ->orderByDesc('helpful_count')
+            ->orderByDesc('created_at');
+
+        if ($limit) {
+            $query->limit($limit);
+        }
+
+        return $query->get();
     }
 }
