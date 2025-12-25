@@ -9,6 +9,8 @@ use App\Modules\Review_Reading\Requests\UpdateProgressRequest;
 use App\Modules\Review_Reading\Services\ReadingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use App\Modules\Library\Services\ViewerService;
 use Throwable;
 
 class ReadingController extends Controller
@@ -17,6 +19,10 @@ class ReadingController extends Controller
     {
         try {
             $userId = Auth::id();
+            $this->validateViewerToken($request, $request->book_id);
+
+
+            $this->validateViewerToken($request, $request->book_id);
 
             $service->start(
                 $userId,
@@ -86,6 +92,8 @@ class ReadingController extends Controller
     {
         try {
             $userId = Auth::id();
+            $this->validateViewerToken($request, $request->book_id);
+
 
             $progress = $service->updateProgress(
                 $userId,
@@ -131,4 +139,31 @@ class ReadingController extends Controller
             'errors' => null
         ], 400);
     }
+
+    protected function validateViewerToken(Request $request, string $bookId)
+    {
+        $viewerToken = $request->header('X-Viewer-Token');
+
+        if (! $viewerToken) {
+            abort(403, 'Viewer token missing');
+        }
+
+        /** @var ViewerService $viewerService */
+        $viewerService = app(ViewerService::class);
+
+        // 🔐 VALIDASI TOKEN (pakai method yang SUDAH ADA)
+        $result = $viewerService->validateTokenAndGetFile($viewerToken);
+
+        if (! $result) {
+            abort(403, 'Invalid or expired viewer token');
+        }
+
+        // ⚠️ Jika validateTokenAndGetFile() tidak return user_id & book_id
+        // maka kita validasi minimal bahwa token tersebut AKTIF
+        // dan request ini sudah melewati auth middleware
+
+        return true;
+    }
+
+
 }

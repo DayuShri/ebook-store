@@ -6,22 +6,32 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateBookRequest extends FormRequest
 {
-    public function authorize() { return true; }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
-    public function rules()
+    public function rules(): array
     {
         return [
-            'title' => 'sometimes|string|max:500',
-            'price' => 'sometimes|numeric|min:0',
-            'isbn' => 'sometimes|nullable|string|max:20',
-            'discount_percentage' => 'sometimes|numeric|min:0|max:100',
-            'is_active' => 'sometimes|boolean',
-            'author' => 'sometimes|nullable|string|max:500',
-            'publisher' => 'sometimes|nullable|string|max:255',
+            'isbn' => 'nullable|string|max:50',
+            'title' => 'sometimes|required|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
+            'synopsis' => 'nullable|string',
+            'author' => 'nullable|string|max:255',
+            'publisher' => 'nullable|string|max:255',
+            'cover_image_url' => 'nullable|url',
+            'price' => 'sometimes|required|numeric|min:0',
+            'discount_percentage' => 'nullable|integer|min:0|max:100',
+            'publication_date' => 'nullable|date',
+            'page_count' => 'nullable|integer|min:1',
+            'language' => 'nullable|string|max:50',
+            'file_format' => 'nullable|string|max:50',
+            'file_size_mb' => 'nullable|numeric|min:0',
+            'is_active' => 'boolean',
 
-            'category_ids' => 'sometimes|array',
-            'category_ids.*' => 'uuid|exists:book_categories,id',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'exists:book_categories,id',
         ];
     }
 }
-

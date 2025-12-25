@@ -3,45 +3,71 @@
 namespace App\Modules\Catalog\Controllers\Internal;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Catalog\Services\BookService;
+use App\Modules\Catalog\Models\Book;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CatalogInternalController extends Controller
 {
-    public function __construct(
-        protected BookService $service
-    ) {}
-
-    public function price($id)
-    {
-        return response()->json($this->service->price($id));
-    }
-
-    public function exists($id)
-    {
-        return response()->json([
-            'book_id' => $id,
-            'exists' => $this->service->exists($id),
-        ]);
-    }
-
-    public function basic($id)
-    {
-        return response()->json($this->service->basic($id));
-    }
-
-    public function bulkPrice(Request $request)
+    /**
+     * Validate book existence & active status
+     * Used by: Order, Wishlist, Library, Review
+     */
+    public function getBookPrices(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'book_ids' => 'required|array|min:1',
-            'book_ids.*' => 'uuid',
+            'book_ids' => 'required|array',
+            'book_ids.*' => 'string',
         ]);
 
+        $books = Book::whereIn('id', $data['book_ids'])
+            ->where('is_active', true)
+            ->get(['id', 'price']);
+
+        if ($books->count() !== count($data['book_ids'])) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'One or more books are invalid or inactive',
+            ], 422);
+        }
+
         return response()->json([
-            'data' => $this->service->bulkPrice($data['book_ids'])
+            'valid' => true,
+            'books' => $books,
         ]);
     }
 
+    public function getAllBooks()
+    {
+        $books = Book::where('is_active', true)
+            ->with('categories:id,name')
+            ->get([
+                'id',
+                'title',
+                'cover_image_url',
+                'price'
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $books
+        ]);
+    }
+
+    public function getBookDetail(string $id)
+    {
+        $book = Book::where('id', $id)
+            ->where('is_active', true)
+            ->with('categories:id,name')
+            ->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'data' => $book
+        ]);
+    }
+
+    
     public function full($id)
     {
         $book = $this->service->full($id);
@@ -55,4 +81,6 @@ class CatalogInternalController extends Controller
 
         return response()->json($book);
     }
+
+
 }
