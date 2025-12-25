@@ -105,4 +105,93 @@ class WalletHookController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get wallet balance for a user
+     */
+    public function getBalance(string $userId): JsonResponse
+    {
+        try {
+            $wallet = $this->walletService->getWallet($userId);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'balance' => $wallet->balance,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get wallet balance', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get wallet info (balance + basic info)
+     */
+    public function getWallet(string $userId): JsonResponse
+    {
+        try {
+            $wallet = $this->walletService->getWallet($userId);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $wallet->id,
+                    'user_id' => $wallet->user_id,
+                    'balance' => $wallet->balance,
+                    'created_at' => $wallet->created_at,
+                    'updated_at' => $wallet->updated_at,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get wallet info', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get wallet transaction history
+     */
+    public function getTransactions(string $userId, int $limit = 20): JsonResponse
+    {
+        try {
+            $wallet = $this->walletService->getWallet($userId);
+            $transactions = $wallet->transactions()
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'transactions' => $transactions,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get wallet transactions', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

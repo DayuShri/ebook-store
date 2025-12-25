@@ -4,23 +4,21 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Services\Frontend\CartService;
-use App\Services\Frontend\WalletFrontendService;
 use App\Services\Frontend\LibraryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class CartController extends Controller
 {
     protected CartService $cartService;
-    protected WalletFrontendService $walletService;
     protected LibraryService $libraryService;
 
     public function __construct(
         CartService $cartService,
-        WalletFrontendService $walletService,
         LibraryService $libraryService
     ) {
         $this->cartService = $cartService;
-        $this->walletService = $walletService;
         $this->libraryService = $libraryService;
     }
 
@@ -128,7 +126,22 @@ class CartController extends Controller
             return redirect()->route('cart.index')->with('error', 'Keranjang kosong');
         }
 
-        $walletBalance = $this->walletService->getBalance();
+        // Get wallet balance from Payment module's Public API
+        $walletBalance = 0;
+        try {
+            $response = Http::withToken(auth()->user()->currentAccessToken()->token)
+                ->get(config('app.url') . '/api/v1/wallet/me');
+
+            if ($response->successful()) {
+                $data = $response->json('data');
+                $walletBalance = $data['balance'] ?? 0;
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch wallet balance for checkout', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         $canPay = $walletBalance >= $cart['total'];
 
         return view('frontend.cart.checkout', [
@@ -150,27 +163,49 @@ class CartController extends Controller
             return redirect()->route('cart.index')->with('error', 'Keranjang kosong');
         }
 
-        // Check wallet balance
-        if (!$this->walletService->hasEnoughBalance($cart['total'])) {
-            return redirect()->route('checkout')->with('error', 'Saldo tidak mencukupi. Silakan top-up terlebih dahulu.');
-        }
-
-        // Process payment
+        // Generate order ID
         $orderId = 'ORD-' . strtoupper(substr(uniqid(), -8));
-        $paymentResult = $this->walletService->pay($cart['total'], $orderId, 'Pembelian ' . $cart['item_count'] . ' buku');
 
-        if (!$paymentResult['success']) {
-            return redirect()->route('checkout')->with('error', $paymentResult['message']);
+        try {
+            // Call Payment module's Public API to deduct balance
+            $response = Http::withToken(auth()->user()->currentAccessToken()->token)
+                ->post(config('app.url') . '/api/v1/payment/deduct', [
+                    'order_id' => $orderId,
+                    'user_id' => auth()->id(),
+                    'amount' => $cart['total'],
+                    'payment_method' => 'wallet',
+                ]);
+
+            if ($response->failed()) {
+                $errorMessage = $response->json('message', 'Pembayaran gagal');
+                
+                Log::error('Payment deduction failed', [
+                    'order_id' => $orderId,
+                    'amount' => $cart['total'],
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return redirect()->route('checkout')->with('error', $errorMessage);
+            }
+
+            // Payment successful - add books to library
+            foreach ($cart['items'] as $item) {
+                $this->libraryService->addToLibrary($item['book_id'], $orderId);
+            }
+
+            // Clear cart
+            $this->cartService->clearCart();
+
+            return redirect()->route('library.index')->with('success', 'Pembayaran berhasil! Buku sudah ditambahkan ke perpustakaan Anda.');
+        } catch (\Exception $e) {
+            Log::error('Exception processing payment', [
+                'order_id' => $orderId,
+                'amount' => $cart['total'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('checkout')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-
-        // Add books to library
-        foreach ($cart['items'] as $item) {
-            $this->libraryService->addToLibrary($item['book_id'], $orderId);
-        }
-
-        // Clear cart
-        $this->cartService->clearCart();
-
-        return redirect()->route('library.index')->with('success', 'Pembayaran berhasil! Buku sudah ditambahkan ke perpustakaan Anda.');
     }
 }
