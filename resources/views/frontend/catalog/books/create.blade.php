@@ -193,11 +193,11 @@
                 {{-- 🔥 TAMBAHAN UPLOAD FILE BUKU --}}
                 <div class="mt-6">
                     <label class="block text-sm font-semibold text-slate-700 mb-2">
-                        Upload File Buku (PDF)
+                        Upload File Buku (PDF/EPUB)
                     </label>
                     <input type="file"
                            name="book_file"
-                           accept="application/pdf"
+                           accept="application/pdf, application/epub"
                            required
                            class="block w-full text-sm text-slate-600
                                   file:mr-4 file:rounded-lg
@@ -206,7 +206,7 @@
                                   file:text-sm file:font-semibold
                                   file:text-indigo-700 hover:file:bg-indigo-100">
                     <p class="text-xs text-slate-500 mt-1">
-                        File ini akan dikirim ke sistem Library (PDF)
+                        File ini akan dikirim ke sistem Library (PDF/EPUB)
                     </p>
                 </div>
             </section>

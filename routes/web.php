@@ -116,53 +116,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         return view('frontend.admin.dashboard');
     })->name('dashboard');
 
-     Route::get('/users', [UserController::class, 'index'])->name('users');
-});
-
-
-
-    /*
-|--------------------------------------------------------------------------
-| ADMIN / CATALOG MANAGEMENT (INTEROPERABLE)
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'admin'])
-    ->prefix('catalog')
-    ->name('catalog.')
-    ->group(function () {
-
-        /*
-        |-------------------------
-        | CATEGORY CRUD (METADATA)
-        |-------------------------
-        */
-        Route::resource('categories', CategoryController::class);
-
-        /*
-        |-------------------------
-        | BOOK CRUD (METADATA ONLY)
-        |-------------------------
-        */
-        Route::resource('books', BookController::class);
-
-        /*
-        |-------------------------
-        | BOOK FILE UPLOAD (STEP 2)
-        |-------------------------
-        | Ini yang PENTING untuk interoperabilitas
-        */
-     Route::get(
-    'books/{book}/upload',
-    [BookController::class, 'uploadForm']
-)->name('books.upload.form');
-
-Route::post(
-    'books/{book}/upload',
-    [BookController::class, 'uploadStore']
-)->name('books.upload.store');
-    });
-
-
     // User Management
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::get('/users/create', [AdminController::class, 'createUserForm'])->name('users.create');
@@ -185,3 +138,22 @@ Route::post(
     Route::delete('/vouchers/{id}', [AdminController::class, 'deleteVoucher'])->name('vouchers.delete');
 });
 
+/*
+|--------------------------------------------------------------------------
+| ADMIN / CATALOG MANAGEMENT (INTEROPERABLE)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'admin'])
+    ->prefix('catalog')
+    ->name('catalog.')
+    ->group(function () {
+        // Category CRUD
+        Route::resource('categories', CategoryController::class);
+
+        // Book CRUD
+        Route::resource('books', BookController::class);
+
+        // Book File Upload
+        Route::get('books/{book}/upload', [BookController::class, 'uploadForm'])->name('books.upload.form');
+        Route::post('books/{book}/upload', [BookController::class, 'uploadStore'])->name('books.upload.store');
+    });
