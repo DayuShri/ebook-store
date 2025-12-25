@@ -29,11 +29,11 @@ class LibraryController extends Controller
      */
     public function index()
     {
-        $libraryItems = $this->libraryService->getLibraryItems();
+        $libraryItems = $this->libraryService->getLibraryItems() ?? [];
 
         return view('frontend.library.index', [
             'libraryItems' => $libraryItems,
-            'cartCount' => $this->cartService->getItemCount(),
+            'cartCount' => $this->cartService->getItemCount() ?? 0,
         ]);
     }
 

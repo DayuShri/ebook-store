@@ -35,7 +35,11 @@
                 </div>
             @endif
 
-            <form action="{{ route('login') }}" method="POST" class="mt-8">
+            <div id="error-message" class="mt-6 bg-red-50 border border-red-200 rounded-lg p-4 hidden">
+                <p class="text-red-600 text-sm" id="error-text"></p>
+            </div>
+
+            <form id="login-form" class="mt-8">
                 @csrf
 
                 <div class="mb-4">
@@ -59,7 +63,7 @@
                     </label>
                 </div>
 
-                <button type="submit" class="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors">
+                <button type="submit" id="login-button" class="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors">
                     Masuk
                 </button>
             </form>
@@ -80,5 +84,55 @@
             </a>
         </p>
     </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const button = document.getElementById('login-button');
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            // Disable button
+            button.disabled = true;
+            button.textContent = 'Memproses...';
+            errorDiv.classList.add('hidden');
+            
+            const formData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+            };
+            
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.redirect) {
+                    // Redirect to library
+                    window.location.href = data.redirect;
+                } else {
+                    errorText.textContent = data.message || 'Email atau password tidak valid.';
+                    errorDiv.classList.remove('hidden');
+                    button.disabled = false;
+                    button.textContent = 'Masuk';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorText.textContent = 'Terjadi kesalahan. Silakan coba lagi.';
+                errorDiv.classList.remove('hidden');
+                button.disabled = false;
+                button.textContent = 'Masuk';
+            }
+        });
+    </script>
 </body>
 </html>

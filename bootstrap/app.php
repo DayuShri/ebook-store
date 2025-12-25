@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'token.valid' => \App\Http\Middleware\EnsureTokenIsValid::class,
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
+        
+        // Enable CORS for API routes
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
 
         $middleware->validateCsrfTokens(except: [
             'api/v1/payment/callback',

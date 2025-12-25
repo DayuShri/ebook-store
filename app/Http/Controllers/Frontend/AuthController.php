@@ -39,8 +39,15 @@ class AuthController extends Controller
         $user = User::where('email', $credentials['email'])->first();
 
         if ($user && Hash::check($credentials['password'], $user->password_hash)) {
+            // Log before login
+            \Log::info('Login attempt for user: ' . $user->email);
+            
             // Manually login the user
             Auth::login($user, $remember);
+            
+            // Log after login
+            \Log::info('User authenticated: ' . Auth::check());
+            \Log::info('User ID: ' . Auth::id());
             
             // Regenerate session to prevent fixation
             $request->session()->regenerate();
@@ -48,9 +55,13 @@ class AuthController extends Controller
             // Update last login
             $user->update(['last_login_at' => now()]);
 
-            return redirect()->intended(route('home'))->with('success', 'Selamat datang kembali!');
+            // Redirect to library after successful login
+            \Log::info('Redirecting to library.index');
+            return redirect()->route('library.index')->with('success', 'Selamat datang kembali!');
         }
 
+        \Log::warning('Login failed for: ' . $credentials['email']);
+        
         return back()->withErrors([
             'email' => 'Email atau password tidak valid.',
         ])->withInput($request->only('email', 'remember'));
