@@ -3,75 +3,115 @@
 namespace App\Modules\Catalog\Controllers\Http;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Catalog\Services\CategoryService;
+use App\Modules\Catalog\Models\BookCategory;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    public function __construct(
-        protected CategoryService $service
-    ) {}
-
-    public function index()
+    /**
+     * Public / user - list categories
+     */
+    public function index(): JsonResponse
     {
+        $categories = BookCategory::with('children')
+            ->whereNull('parent_id')
+            ->orderBy('name')
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => $this->service->list()
+            'data' => $categories,
         ]);
     }
 
-    public function store(Request $request)
+    /**
+     * Public / user - books by category
+     */
+    public function books(string $id): JsonResponse
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:100',
-            'slug' => 'required|string|max:100|unique:book_categories,slug',
-            'parent_id' => 'nullable|exists:book_categories,id',
-        ]);
-
-        // id uuid auto by HasUuids, jadi gak perlu Str::uuid() kalau model pakai HasUuids
-        $cat = $this->service->create($data);
+        $category = BookCategory::with([
+            'books' => function ($query) {
+                $query->where('is_active', true);
+            }
+        ])->findOrFail($id);
 
         return response()->json([
             'success' => true,
-            'message' => 'Category created',
-            'data' => $cat
+            'data' => $category,
+        ]);
+    }
+
+    /**
+     * Admin - create category
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:book_categories,slug',
+            'parent_id' => 'nullable|exists:book_categories,id',
+        ]);
+
+        $data['id'] = (string) Str::uuid();
+        $data['slug'] = $data['slug'] ?? Str::slug($data['name']);
+
+        $category = BookCategory::create($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Category created successfully',
+            'data' => $category,
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * Admin - update category
+     */
+    public function update(Request $request, string $id): JsonResponse
     {
+        $category = BookCategory::findOrFail($id);
+
         $data = $request->validate([
-            'name' => 'sometimes|string|max:100',
-            'slug' => 'sometimes|string|max:100|unique:book_categories,slug,' . $id,
+            'name' => 'sometimes|required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:book_categories,slug,' . $category->id . ',id',
             'parent_id' => 'nullable|exists:book_categories,id',
         ]);
 
-        $cat = $this->service->update($id, $data);
+        if (isset($data['name']) && empty($data['slug'])) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+
+        $category->update($data);
 
         return response()->json([
             'success' => true,
-            'message' => 'Category updated',
-            'data' => $cat
+            'message' => 'Category updated successfully',
+            'data' => $category->fresh(),
         ]);
     }
 
-    public function show($id)
-{
-    return response()->json([
-        'success' => true,
-        'data' => $this->service->detail($id)
-    ]);
-}
-
-
-    public function destroy($id)
+    /**
+     * Admin - delete category
+     */
+    public function destroy(string $id): JsonResponse
     {
-        $this->service->delete($id);
+        $category = BookCategory::findOrFail($id);
+
+        // optional safety check
+        if ($category->books()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category cannot be deleted because it has books',
+            ], 400);
+        }
+
+        $category->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Category deleted'
+            'message' => 'Category deleted successfully',
         ]);
     }
 }

@@ -3,42 +3,55 @@
 namespace App\Modules\Catalog\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Modules\Catalog\Models\Book;
 
 class BookCategory extends Model
 {
-    use HasUuids;
-
     protected $table = 'book_categories';
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
 
-    /**
-     * ❗ Tabel TIDAK punya updated_at
-     */
-    public $timestamps = false; // 🔥 INI KUNCI UTAMA
-
-    /**
-     * UUID dikirim manual
-     */
     protected $fillable = [
+        'id',
         'name',
         'slug',
         'parent_id',
     ];
 
-    // ===============================
-    // RELATIONS
-    // ===============================
+    public $incrementing = false;
+    protected $keyType = 'string';
+    public $timestamps = false;
 
-    public function parent()
+    /**
+     * Relasi ke buku (many-to-many)
+     */
+    public function books()
     {
-        return $this->belongsTo(BookCategory::class, 'parent_id');
+        return $this->belongsToMany(
+            Book::class,
+            'book_category_mappings',
+            'category_id',
+            'book_id'
+        );
     }
 
+    /**
+     * Parent category (self relation)
+     */
+    public function parent()
+    {
+        return $this->belongsTo(
+            BookCategory::class,
+            'parent_id'
+        );
+    }
+
+    /**
+     * Child categories
+     */
     public function children()
     {
-        return $this->hasMany(BookCategory::class, 'parent_id');
+        return $this->hasMany(
+            BookCategory::class,
+            'parent_id'
+        );
     }
 }

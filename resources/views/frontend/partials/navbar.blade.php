@@ -13,23 +13,34 @@
                 
                 <!-- Categories Dropdown -->
                 <div class="hidden md:block relative group">
-                    <button class="flex items-center space-x-1 text-gray-600 hover:text-gray-900 font-medium">
-                        <span>Kategori</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
-                    <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                        <div class="py-2">
-                            <a href="{{ route('books.index', ['category' => 'fiksi']) }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-50">Fiksi</a>
-                            <a href="{{ route('books.index', ['category' => 'non-fiksi']) }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-50">Non-Fiksi</a>
-                            <a href="{{ route('books.index', ['category' => 'bisnis']) }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-50">Bisnis & Ekonomi</a>
-                            <a href="{{ route('books.index', ['category' => 'teknologi']) }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-50">Teknologi</a>
-                            <a href="{{ route('books.index', ['category' => 'self-improvement']) }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-50">Pengembangan Diri</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <button class="flex items-center space-x-1 text-gray-600 hover:text-gray-900 font-medium">
+        <span>Kategori</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+    </button>
+
+    <div class="absolute left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100
+                opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                transition-all duration-200">
+        <div class="py-2">
+    @forelse($navbarCategories as $category)
+        <a
+            href="{{ route('category', $category->slug) }}"
+            class="block px-4 py-2 text-gray-700 hover:bg-gray-50"
+        >
+            {{ $category->name }}
+        </a>
+    @empty
+        <span class="block px-4 py-2 text-sm text-gray-400">
+            Tidak ada kategori
+        </span>
+    @endforelse
+</div>
+        </div>
+    </div>
+</div>
+
             
             <!-- Center: Search -->
             <div class="hidden md:flex flex-1 max-w-lg mx-8 items-center">

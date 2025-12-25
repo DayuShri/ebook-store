@@ -3,6 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\CatalogController;
+
+use App\Http\Controllers\Frontend\CategoryController;
+use App\Http\Controllers\Frontend\BookController;
+
 use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\WalletController;
 use App\Http\Controllers\Frontend\LibraryWebController;
@@ -28,11 +32,13 @@ use App\Http\Controllers\Frontend\ApiAuthController;
 // Home
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+
 // Catalog
 Route::get('/books', [CatalogController::class, 'index'])->name('books.index');
 Route::get('/books/{id}', [CatalogController::class, 'show'])->name('books.show');
 Route::get('/search', [CatalogController::class, 'search'])->name('search');
 Route::get('/category/{slug}', [CatalogController::class, 'category'])->name('category');
+
 
 // Auth (Guest only)
 Route::middleware('guest')->group(function () {
@@ -43,6 +49,7 @@ Route::middleware('guest')->group(function () {
 // Auth actions (API-based)
 Route::post('/auth/login', [ApiAuthController::class, 'login'])->name('auth.login');
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+
 
 // Payment success callback (from Xendit)
 Route::get('/payment/success', function () {
@@ -108,6 +115,53 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         }
         return view('frontend.admin.dashboard');
     })->name('dashboard');
+
+     Route::get('/users', [UserController::class, 'index'])->name('users');
+});
+
+
+
+    /*
+|--------------------------------------------------------------------------
+| ADMIN / CATALOG MANAGEMENT (INTEROPERABLE)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'admin'])
+    ->prefix('catalog')
+    ->name('catalog.')
+    ->group(function () {
+
+        /*
+        |-------------------------
+        | CATEGORY CRUD (METADATA)
+        |-------------------------
+        */
+        Route::resource('categories', CategoryController::class);
+
+        /*
+        |-------------------------
+        | BOOK CRUD (METADATA ONLY)
+        |-------------------------
+        */
+        Route::resource('books', BookController::class);
+
+        /*
+        |-------------------------
+        | BOOK FILE UPLOAD (STEP 2)
+        |-------------------------
+        | Ini yang PENTING untuk interoperabilitas
+        */
+     Route::get(
+    'books/{book}/upload',
+    [BookController::class, 'uploadForm']
+)->name('books.upload.form');
+
+Route::post(
+    'books/{book}/upload',
+    [BookController::class, 'uploadStore']
+)->name('books.upload.store');
+    });
+
 
     // User Management
     Route::get('/users', [AdminController::class, 'users'])->name('users');

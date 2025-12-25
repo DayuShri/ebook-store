@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', $book['title'])
+@section('title', $book['title'] ?? 'Detail Buku')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -10,12 +10,18 @@
             <li><a href="{{ route('home') }}" class="hover:text-primary-600">Beranda</a></li>
             <li><span>/</span></li>
             <li><a href="{{ route('books.index') }}" class="hover:text-primary-600">Katalog</a></li>
+
             @if(!empty($book['categories']))
                 <li><span>/</span></li>
-                <li><a href="{{ route('category', $book['categories'][0]['slug']) }}" class="hover:text-primary-600">{{ $book['categories'][0]['name'] }}</a></li>
+                <li>
+                    <a href="{{ route('category', $book['categories'][0]['slug']) }}" class="hover:text-primary-600">
+                        {{ $book['categories'][0]['name'] }}
+                    </a>
+                </li>
             @endif
+
             <li><span>/</span></li>
-            <li class="text-gray-900 font-medium truncate max-w-xs">{{ $book['title'] }}</li>
+            <li class="text-gray-900 font-medium truncate max-w-xs">{{ $book['title'] ?? '-' }}</li>
         </ol>
     </nav>
 
@@ -23,8 +29,8 @@
     <div class="grid md:grid-cols-3 gap-8 mb-12">
         {{-- Cover Image --}}
         <div class="md:col-span-1">
-            <div class="sticky top-24">
-                <div class="aspect-[2/3] rounded-xl overflow-hidden shadow-lg">
+            <div class="sticky top-24 relative">
+                <div class="aspect-[2/3] rounded-xl overflow-hidden shadow-lg relative">
                     @if(!empty($book['cover_image_url']))
                         <img src="{{ $book['cover_image_url'] }}" alt="{{ $book['title'] }}" class="w-full h-full object-cover">
                     @else
@@ -34,14 +40,14 @@
                             </svg>
                         </div>
                     @endif
+
+                    {{-- Discount Badge --}}
+                    @if(!empty($book['discount_percentage']) && (float)$book['discount_percentage'] > 0)
+                        <div class="absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-lg">
+                            -{{ number_format((float)$book['discount_percentage'], 0) }}%
+                        </div>
+                    @endif
                 </div>
-                
-                {{-- Discount Badge --}}
-                @if(!empty($book['discount_percentage']) && $book['discount_percentage'] > 0)
-                    <div class="absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-lg">
-                        -{{ number_format($book['discount_percentage'], 0) }}%
-                    </div>
-                @endif
             </div>
         </div>
 
@@ -51,28 +57,40 @@
             @if(!empty($book['categories']))
                 <div class="flex flex-wrap gap-2 mb-3">
                     @foreach($book['categories'] as $category)
-                        <a href="{{ route('category', $category['slug']) }}" class="text-sm bg-primary-50 text-primary-700 px-3 py-1 rounded-full hover:bg-primary-100">
+                        <a href="{{ route('category', $category['slug']) }}"
+                           class="text-sm bg-primary-50 text-primary-700 px-3 py-1 rounded-full hover:bg-primary-100">
                             {{ $category['name'] }}
                         </a>
                     @endforeach
                 </div>
             @endif
 
-            <h1 class="text-3xl font-bold text-gray-900">{{ $book['title'] }}</h1>
-            
+            <h1 class="text-3xl font-bold text-gray-900">{{ $book['title'] ?? '-' }}</h1>
+
             @if(!empty($book['subtitle']))
                 <p class="text-lg text-gray-600 mt-2">{{ $book['subtitle'] }}</p>
             @endif
 
-            {{-- Author(s) --}}
+            {{-- Author --}}
             <div class="mt-4">
                 <span class="text-gray-500">oleh</span>
-                @foreach($book['authors'] ?? [] as $index => $author)
-                    <span class="text-primary-600 font-medium">{{ $author['name'] }}</span>{{ $index < count($book['authors']) - 1 ? ', ' : '' }}
-                @endforeach
+
+                {{-- ✅ Prioritas: field author (string) dari DB kamu --}}
+                @if(!empty($book['author']))
+                    <span class="text-primary-600 font-medium">{{ $book['author'] }}</span>
+
+                {{-- Fallback: kalau nanti kamu memang punya authors[] --}}
+                @elseif(!empty($book['authors']) && is_array($book['authors']))
+                    @foreach($book['authors'] as $index => $author)
+                        <span class="text-primary-600 font-medium">{{ $author['name'] ?? '-' }}</span>{{ $index < count($book['authors']) - 1 ? ', ' : '' }}
+                    @endforeach
+
+                @else
+                    <span class="text-gray-400">-</span>
+                @endif
             </div>
 
-            {{-- Rating --}}
+            {{-- Rating (optional, kalau kamu sudah punya review service) --}}
             @if(isset($book['avg_rating']))
                 <div class="flex items-center mt-4">
                     <div class="flex items-center">
@@ -82,7 +100,7 @@
                             </svg>
                         @endfor
                     </div>
-                    <span class="ml-2 text-lg font-semibold">{{ number_format($book['avg_rating'], 1) }}</span>
+                    <span class="ml-2 text-lg font-semibold">{{ number_format((float)$book['avg_rating'], 1) }}</span>
                     <span class="ml-2 text-gray-500">({{ $book['review_count'] ?? 0 }} ulasan)</span>
                 </div>
             @endif
@@ -90,14 +108,23 @@
             {{-- Price --}}
             <div class="mt-6 p-6 bg-gray-50 rounded-xl">
                 <div class="flex items-baseline gap-3">
-                    @if(!empty($book['discount_percentage']) && $book['discount_percentage'] > 0)
-                        @php
-                            $discountedPrice = $book['price'] * (1 - $book['discount_percentage'] / 100);
-                        @endphp
-                        <span class="text-3xl font-bold text-primary-600">Rp {{ number_format($discountedPrice, 0, ',', '.') }}</span>
-                        <span class="text-xl text-gray-400 line-through">Rp {{ number_format($book['price'], 0, ',', '.') }}</span>
+                    @php
+                        $price = (float)($book['price'] ?? 0);
+                        $disc  = (float)($book['discount_percentage'] ?? 0);
+                        $discountedPrice = $disc > 0 ? ($price * (1 - $disc / 100)) : $price;
+                    @endphp
+
+                    @if($disc > 0)
+                        <span class="text-3xl font-bold text-primary-600">
+                            Rp {{ number_format($discountedPrice, 0, ',', '.') }}
+                        </span>
+                        <span class="text-xl text-gray-400 line-through">
+                            Rp {{ number_format($price, 0, ',', '.') }}
+                        </span>
                     @else
-                        <span class="text-3xl font-bold text-primary-600">Rp {{ number_format($book['price'], 0, ',', '.') }}</span>
+                        <span class="text-3xl font-bold text-primary-600">
+                            Rp {{ number_format($price, 0, ',', '.') }}
+                        </span>
                     @endif
                 </div>
 
@@ -112,7 +139,7 @@
                             Tambah ke Keranjang
                         </button>
                     </form>
-                    
+
                     @auth
                         <form action="{{ route($isInWishlist ? 'wishlist.remove' : 'wishlist.add', $book['id']) }}" method="POST">
                             @csrf
@@ -134,25 +161,38 @@
                 @if(!empty($book['publisher']))
                     <div class="bg-white p-4 rounded-lg border border-gray-100">
                         <span class="text-sm text-gray-500">Penerbit</span>
-                        <p class="font-medium text-gray-900">{{ $book['publisher']['name'] }}</p>
+
+                        {{-- ✅ publisher di DB kamu string --}}
+                        @if(is_array($book['publisher']))
+                            <p class="font-medium text-gray-900">{{ $book['publisher']['name'] ?? '-' }}</p>
+                        @else
+                            <p class="font-medium text-gray-900">{{ $book['publisher'] }}</p>
+                        @endif
                     </div>
                 @endif
+
                 @if(!empty($book['publication_date']))
                     <div class="bg-white p-4 rounded-lg border border-gray-100">
                         <span class="text-sm text-gray-500">Terbit</span>
-                        <p class="font-medium text-gray-900">{{ \Carbon\Carbon::parse($book['publication_date'])->format('d M Y') }}</p>
+                        <p class="font-medium text-gray-900">
+                            {{ \Carbon\Carbon::parse($book['publication_date'])->format('d M Y') }}
+                        </p>
                     </div>
                 @endif
+
                 @if(!empty($book['page_count']))
                     <div class="bg-white p-4 rounded-lg border border-gray-100">
                         <span class="text-sm text-gray-500">Halaman</span>
                         <p class="font-medium text-gray-900">{{ $book['page_count'] }}</p>
                     </div>
                 @endif
+
                 @if(!empty($book['language']))
                     <div class="bg-white p-4 rounded-lg border border-gray-100">
                         <span class="text-sm text-gray-500">Bahasa</span>
-                        <p class="font-medium text-gray-900">{{ $book['language'] === 'id' ? 'Indonesia' : $book['language'] }}</p>
+                        <p class="font-medium text-gray-900">
+                            {{ $book['language'] === 'id' ? 'Indonesia' : strtoupper($book['language']) }}
+                        </p>
                     </div>
                 @endif
             </div>
@@ -165,12 +205,12 @@
             {{-- Tab Headers --}}
             <div class="border-b border-gray-200">
                 <nav class="flex space-x-8">
-                    <button @click="activeTab = 'synopsis'" 
+                    <button @click="activeTab = 'synopsis'"
                             :class="activeTab === 'synopsis' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                             class="py-4 px-1 border-b-2 font-medium text-sm transition-colors">
                         Sinopsis
                     </button>
-                    <button @click="activeTab = 'reviews'" 
+                    <button @click="activeTab = 'reviews'"
                             :class="activeTab === 'reviews' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                             class="py-4 px-1 border-b-2 font-medium text-sm transition-colors">
                         Ulasan ({{ $reviewStats['total'] ?? 0 }})
@@ -183,35 +223,39 @@
                 {{-- Synopsis --}}
                 <div x-show="activeTab === 'synopsis'">
                     <div class="prose max-w-none">
-                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">{{ $book['synopsis'] ?? 'Tidak ada sinopsis tersedia.' }}</p>
+                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">
+                            {{ $book['synopsis'] ?? 'Tidak ada sinopsis tersedia.' }}
+                        </p>
                     </div>
                 </div>
 
                 {{-- Reviews --}}
                 <div x-show="activeTab === 'reviews'" x-cloak>
-                    @if(count($reviews) > 0)
+                    @if(!empty($reviews) && count($reviews) > 0)
                         <div class="space-y-6">
                             @foreach($reviews as $review)
                                 <div class="bg-white p-6 rounded-xl border border-gray-100">
                                     <div class="flex items-start justify-between">
                                         <div>
                                             <div class="flex items-center space-x-2">
-                                                <span class="font-semibold text-gray-900">{{ $review['user_name'] }}</span>
+                                                <span class="font-semibold text-gray-900">{{ $review['user_name'] ?? 'User' }}</span>
                                                 @if($review['is_verified_purchase'] ?? false)
                                                     <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Pembelian Terverifikasi</span>
                                                 @endif
                                             </div>
                                             <div class="flex items-center mt-1">
                                                 @for($i = 1; $i <= 5; $i++)
-                                                    <svg class="w-4 h-4 {{ $i <= $review['rating'] ? 'text-yellow-400' : 'text-gray-300' }}" fill="currentColor" viewBox="0 0 20 20">
+                                                    <svg class="w-4 h-4 {{ $i <= ($review['rating'] ?? 0) ? 'text-yellow-400' : 'text-gray-300' }}" fill="currentColor" viewBox="0 0 20 20">
                                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                                                     </svg>
                                                 @endfor
-                                                <span class="ml-2 text-sm text-gray-500">{{ \Carbon\Carbon::parse($review['created_at'])->diffForHumans() }}</span>
+                                                @if(!empty($review['created_at']))
+                                                    <span class="ml-2 text-sm text-gray-500">{{ \Carbon\Carbon::parse($review['created_at'])->diffForHumans() }}</span>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
-                                    <p class="mt-4 text-gray-700">{{ $review['review_text'] }}</p>
+                                    <p class="mt-4 text-gray-700">{{ $review['review_text'] ?? '-' }}</p>
                                     <div class="mt-4 flex items-center text-sm text-gray-500">
                                         <span>{{ $review['helpful_count'] ?? 0 }} orang menganggap ini membantu</span>
                                     </div>
@@ -229,7 +273,7 @@
     </div>
 
     {{-- Related Books --}}
-    @if(count($relatedBooks) > 0)
+    @if(!empty($relatedBooks) && count($relatedBooks) > 0)
         <div class="border-t border-gray-200 pt-12">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">Buku Terkait</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">

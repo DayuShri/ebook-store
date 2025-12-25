@@ -6,34 +6,33 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreBookRequest extends FormRequest
 {
-    public function authorize() { return true; }
+    public function authorize(): bool
+    {
+        return true; // auth & role sudah di route
+    }
 
-    public function rules()
+    public function rules(): array
     {
         return [
-            'title' => 'required|string|max:500',
-            'price' => 'required|numeric|min:0',
-
-            'isbn' => 'nullable|string|max:20|unique:books,isbn',
-            'subtitle' => 'nullable|string|max:500',
+            'isbn' => 'nullable|string|max:50',
+            'title' => 'required|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
             'synopsis' => 'nullable|string',
-            'author' => 'nullable|string|max:500',
+            'author' => 'nullable|string|max:255',
             'publisher' => 'nullable|string|max:255',
-            'cover_image_url' => 'nullable|string',
-            'discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'cover_image_url' => 'nullable|url',
+            'price' => 'required|numeric|min:0',
+            'discount_percentage' => 'nullable|integer|min:0|max:100',
             'publication_date' => 'nullable|date',
             'page_count' => 'nullable|integer|min:1',
-            'language' => 'nullable|string|max:10',
-            'file_format' => 'nullable|string|max:20',
+            'language' => 'nullable|string|max:50',
+            'file_format' => 'nullable|string|max:50',
             'file_size_mb' => 'nullable|numeric|min:0',
+            'is_active' => 'boolean',
 
+            // relasi kategori
             'category_ids' => 'nullable|array',
-            'category_ids.*' => 'uuid|exists:book_categories,id',
-
-            'author_ids' => 'nullable|array',
-            'author_ids.*' => 'string', // author service teman, jadi gak bisa exists di db kamu
-            'author_ids.*' => 'uuid',
+            'category_ids.*' => 'exists:book_categories,id',
         ];
     }
 }
-
