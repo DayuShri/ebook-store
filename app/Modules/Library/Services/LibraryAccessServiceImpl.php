@@ -4,7 +4,7 @@ namespace App\Modules\Library\Services;
 
 use App\Modules\Review_Reading\Contracts\LibraryAccessService;
 use App\Modules\Library\Models\LibraryItem;
-use App\Modules\Library\Models\Book;
+use App\Modules\Catalog\Models\Book;
 
 class LibraryAccessServiceImpl implements LibraryAccessService
 {
@@ -24,9 +24,9 @@ class LibraryAccessServiceImpl implements LibraryAccessService
         if (!$book) {
             return [
                 'id' => $bookId,
-                'title' => 'Unknown Book',
-                'author' => 'Unknown Author',
-                'cover_url' => null
+                'title' => 'Book Not Found',
+                'authors' => [],
+                'cover_image_url' => null
             ];
         }
 

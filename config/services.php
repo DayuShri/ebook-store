@@ -35,8 +35,20 @@ return [
         ],
     ],
 
-    'xendit' => [
-        'key' => env('XENDIT_SECRET_KEY'),
+    'catalog' => [
+        'base_url' => env('CATALOG_BASE_URL', 'http://localhost:8000'),
     ],
 
+    'payment' => [
+        'base_url' => env('PAYMENT_BASE_URL', 'http://localhost:8000'),
+    ],
+
+    'wallet' => [
+        'base_url' => env('WALLET_BASE_URL', 'http://localhost:8000'),
+    ],
+
+    'xendit' => [
+        'key' => env('XENDIT_SECRET_KEY'),
+        'webhook_token' => env('XENDIT_WEBHOOK_TOKEN'),
+    ],
 ];

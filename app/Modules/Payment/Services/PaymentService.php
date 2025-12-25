@@ -7,6 +7,8 @@ use Xendit\Invoice\InvoiceApi;
 use Xendit\Invoice\CreateInvoiceRequest;
 use App\Modules\Payment\Models\Payment;
 use App\Modules\Payment\Services\WalletService; // Import Service temanmu
+use App\Modules\Library\Services\LibraryService;
+use App\Modules\Order\Models\OrderItem;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -15,12 +17,14 @@ class PaymentService
 {
     protected $config;
     protected $walletService;
+    protected $libraryService;
 
-    public function __construct(WalletService $walletService) // Inject WalletService melalui constructor
+    public function __construct(WalletService $walletService, LibraryService $libraryService) // Inject WalletService & LibraryService
     {
         $this->config = Configuration::getDefaultConfiguration();
         $this->config->setApiKey(config('services.xendit.key'));
         $this->walletService = $walletService;
+        $this->libraryService = $libraryService;
     }
 
     public function createTopUp($amount)
@@ -64,7 +68,8 @@ class PaymentService
 
             return $payment;
         } catch (\Xendit\XenditSdkException $e) {
-            throw new \Exception("Xendit Error: " . $e->getFullError());
+            // Bungkus dengan json_encode()
+            throw new \Exception("Xendit Error: " . json_encode($e->getFullError()));
         } catch (\Exception $e) {
             throw new \Exception("Gagal menghubungi Xendit: " . $e->getMessage());
         }

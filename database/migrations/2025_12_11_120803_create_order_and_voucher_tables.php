@@ -42,7 +42,7 @@ return new class extends Migration
             $table->integer('quota')->nullable();
             $table->integer('used_count')->default(0);
             $table->timestamp('valid_from');
-            $table->timestamp('valid_until');
+            $table->timestamp('valid_until')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamp('created_at')->useCurrent();
 

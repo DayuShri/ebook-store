@@ -265,25 +265,25 @@ class LibraryWebController extends Controller
     }
 
     /**
-     * Get book details from database
+     * Get book details from Catalog module (internal) or database
      */
     private function getBookDetails(string $bookId): array
     {
+        // Use internal Catalog BookService directly (same application)
         try {
-            // Get book from database
-            $book = \Illuminate\Support\Facades\DB::table('books')
-                ->where('id', $bookId)
-                ->first();
+            $bookService = app(\App\Modules\Catalog\Services\BookService::class);
+            $book = $bookService->detail($bookId);
             
             if ($book) {
-                // Author is now a simple string column, not a relationship
-                $authors = $book->author 
-                    ? [['name' => $book->author]] 
-                    : [['name' => 'Unknown Author']];
+                // Handle author - single string field in Catalog model
+                $authors = [];
+                if (!empty($book->author)) {
+                    $authors = [['name' => $book->author]];
+                }
                 
                 return [
                     'id' => $book->id,
-                    'title' => $book->title,
+                    'title' => $book->title ?? 'Untitled',
                     'subtitle' => $book->subtitle,
                     'synopsis' => $book->synopsis,
                     'authors' => $authors ?: [['name' => 'Unknown Author']],
@@ -294,11 +294,43 @@ class LibraryWebController extends Controller
                     'publication_date' => $book->publication_date,
                 ];
             }
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::warning("Book not found in Catalog module: {$bookId}");
+        } catch (\Exception $e) {
+            Log::warning('Failed to get book from Catalog module: ' . $e->getMessage());
+        }
+
+        // Fallback: Try direct database query
+        try {
+            $book = \Illuminate\Support\Facades\DB::table('books')
+                ->where('id', $bookId)
+                ->first();
+            
+            if ($book) {
+                $authors = [];
+                if (!empty($book->author)) {
+                    $authors = [['name' => $book->author]];
+                }
+                
+                return [
+                    'id' => $book->id,
+                    'title' => $book->title ?? 'Untitled',
+                    'subtitle' => $book->subtitle ?? null,
+                    'synopsis' => $book->synopsis ?? null,
+                    'authors' => $authors ?: [['name' => 'Unknown Author']],
+                    'cover_image_url' => $book->cover_image_url ?? null,
+                    'description' => $book->synopsis ?? null,
+                    'page_count' => $book->page_count ?? 200,
+                    'price' => $book->price ?? null,
+                    'publication_date' => $book->publication_date ?? null,
+                ];
+            }
         } catch (\Exception $e) {
             Log::warning('Failed to get book from database: ' . $e->getMessage());
         }
 
-        // Return fallback data if book not found
+        // Return fallback data if book not found anywhere
+        Log::error("Book not found: {$bookId}");
         return [
             'id' => $bookId,
             'title' => 'Book Not Found',
