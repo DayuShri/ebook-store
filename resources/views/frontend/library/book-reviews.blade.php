@@ -194,6 +194,15 @@
                                     ✓ Verified Purchase
                                 </span>
                             @endif
+                            @if(auth()->check() && auth()->id() === $review->user_id)
+                                <button
+                                    class="text-sm text-red-600 hover:text-red-800 transition"
+                                    onclick="deleteReview({{ $review->id }})"
+                                >
+                                    Hapus
+                                </button>
+                            @endif
+
                         </div>
                         
                         @if($review->review_text)

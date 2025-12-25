@@ -10,16 +10,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reading/finish', [ReadingController::class, 'finish']);
     Route::post('/reading/progress', [ReadingController::class, 'updateProgress']);
     Route::get('/reading/progress/{book_id}', [ReadingController::class, 'progress']);
-    
-    // Review endpoints
     Route::post('/reading/review', [ReviewController::class, 'store']);
     Route::get('/reading/reviews', [ReviewController::class, 'userReviews']);
+    
+    // Review endpoints
+    
     Route::post('/reviews', [ReviewController::class, 'store']);
     Route::post('/reviews/helpful', [ReviewController::class, 'helpful']);
     Route::get('/reviews/{book_id}', [ReviewController::class, 'index']);
     Route::put('/reviews/{review_id}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{review_id}', [ReviewController::class, 'destroy']);
-    Route::delete('/reading/review/{review_id}', [ReviewController::class, 'destroy']);
+    
 
 
 });

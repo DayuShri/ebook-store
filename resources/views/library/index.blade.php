@@ -276,13 +276,13 @@
         console.log('Library page loaded');
         console.log('Token from localStorage:', token);
         
-        // Check authentication
+        
         if (!token) {
             console.log('No token found, redirecting to login');
             window.location.href = '/login';
         }
         
-        // Display user info
+        
         document.getElementById('userInfo').textContent = userName || userEmail || 'User';
         
         function logout() {
@@ -299,17 +299,114 @@
             document.getElementById('loading').style.display = 'none';
         }
         
-        function openReader(bookId) {
-            console.log('Opening reader for book:', bookId);
-            if (!bookId) {
-                console.error('No book ID provided');
-                return;
-            }
-            
-            // Directly redirect to reader - viewer session will be created there
-            window.location.href = `/reader/${bookId}`;
+
+        async function readingStart(bookId) {
+            const viewerToken = localStorage.getItem('viewer_token');
+
+            await fetch('/api/v1/reading/start', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-Viewer-Token': viewerToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    book_id: bookId,
+                    device_info: navigator.userAgent
+                })
+            });
         }
+
+        async function readingProgress(bookId, currentPage) {
+            const viewerToken = localStorage.getItem('viewer_token');
+
+            await fetch('/api/v1/reading/progress', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-Viewer-Token': viewerToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    book_id: bookId,
+                    current_page: currentPage
+                })
+            });
+        }
+
+        async function readingFinish(bookId, lastPage) {
+            const viewerToken = localStorage.getItem('viewer_token');
+
+            await fetch('/api/v1/reading/finish', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-Viewer-Token': viewerToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    book_id: bookId,
+                    last_page_read: lastPage
+                })
+            });
+        }
+
+
+
+        async function openReader(bookId) {
+            console.log('Opening reader for book:', bookId);
+
+            try {
+                const response = await fetch('/api/v1/library/viewer', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        book_id: bookId,
+                        format: 'pdf'
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    alert(err.message || 'Failed to create viewer session');
+                    return;
+                }
+
+                const result = await response.json();
+
+                
+                localStorage.setItem('viewer_token', result.data.token);
+                localStorage.setItem('viewer_expired_at', result.data.expires_at);
+
+                
+                await readingStart(bookId);
+
+                
+                window.location.href = `/reader/${bookId}`;
+
+            } catch (error) {
+                console.error('Failed to open reader', error);
+                alert('Failed to open reader');
+            }
+        }
+
         
+        function getDeviceInfo() {
+            return {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                screen: `${window.screen.width}x${window.screen.height}`,
+            };
+        }
+
         async function loadLibrary() {
             try {
                 console.log('Fetching library with token:', token);
@@ -324,7 +421,7 @@
                 console.log('Response status:', response.status);
                 
                 if (response.status === 401) {
-                    // Token expired or invalid
+                    
                     console.error('Unauthorized - Token might be invalid');
                     const errorData = await response.json();
                     console.error('Error details:', errorData);
@@ -349,7 +446,7 @@
                 if (books.length === 0) {
                     document.getElementById('emptyState').style.display = 'block';
                 } else {
-                    // Load progress for each book
+                    
                     await loadBooksWithProgress(books);
                 }
             } catch (error) {
@@ -359,21 +456,30 @@
         }
         
         async function loadBooksWithProgress(books) {
-            // Fetch progress for all books in parallel
+            
             const booksWithProgress = await Promise.all(
                 books.map(async (book) => {
+                    const viewerToken = localStorage.getItem('viewer_token');
                     try {
+                        const deviceInfo = getDeviceInfo();
                         const progressResponse = await fetch(`/api/v1/reading/progress/${book.book_id}`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`,
+                                'X-Viewer-Token': viewerToken,
                                 'Accept': 'application/json'
                             }
                         });
                         
-                        // 404 is OK - user hasn't read this book yet
+                        
                         if (progressResponse.ok) {
                             const progressData = await progressResponse.json();
-                            book.progress = progressData.data || null;
+                                book.progress = {
+                                last_page_read: Number(progressData.data.last_page_read ?? 0),
+                                total_pages: Number(progressData.data.total_pages ?? 0),
+                                progress_percentage: Number(progressData.data.progress_percentage ?? 0),
+                                last_read_at: progressData.data.last_read_at,
+                                device_info: progressData.data.device_info
+                            };
                         } else if (progressResponse.status === 404) {
                             console.log(`No progress found for book ${book.book_id} - not started yet`);
                             book.progress = null;
@@ -392,35 +498,31 @@
         function displayBooks(books) {
             const grid = document.getElementById('booksGrid');
             grid.style.display = 'grid';
-            
+
             grid.innerHTML = books.map(item => {
-                const progress = item.progress;
-                const progressPercent = progress?.progress_percentage || 0;
-                const currentPage = progress?.current_page || 0;
-                const totalPages = progress?.total_pages || 0;
+                const progress = item.progress || {};
+                const progressPercent = Number(progress.progress_percentage ?? 0);
+                const currentPage = Number(progress.last_page_read ?? 0);
+                const totalPages = Number(progress.total_pages ?? 0);
                 const bookId = item.book_id || item.id;
-                
-                console.log('Rendering book:', bookId, item.book?.title);
-                
+
                 return `
                     <div class="book-card" data-book-id="${bookId}">
                         <div class="book-cover">📖</div>
                         <div class="book-info">
                             <div class="book-title">${escapeHtml(item.book?.title || 'Untitled')}</div>
                             <div class="book-author">${escapeHtml(item.book?.author || 'Unknown Author')}</div>
-                            
-                            ${progress ? `
-                                <div class="progress-container">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${progressPercent}%"></div>
-                                    </div>
-                                    <div class="progress-text">
-                                        <span>${Math.round(progressPercent)}% Complete</span>
-                                        <span>Page ${currentPage}/${totalPages}</span>
-                                    </div>
+
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progressPercent}%"></div>
                                 </div>
-                            ` : ''}
-                            
+                                <div class="progress-text">
+                                    <span>${Math.round(progressPercent)}% Complete</span>
+                                    <span>Page ${currentPage} / ${totalPages || '?'}</span>
+                                </div>
+                            </div>
+
                             <div class="book-meta">
                                 <span class="book-format">${item.formats?.join(', ') || 'PDF'}</span>
                                 <span>${formatDate(item.purchased_at)}</span>
@@ -429,15 +531,14 @@
                     </div>
                 `;
             }).join('');
-            
-            // Add event listeners to all book cards
+
             document.querySelectorAll('.book-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    const bookId = this.getAttribute('data-book-id');
-                    openReader(bookId);
+                card.addEventListener('click', function () {
+                    openReader(this.dataset.bookId);
                 });
             });
         }
+
         
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -451,7 +552,7 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
         
-        // Load library on page load
+        
         loadLibrary();
     </script>
 </body>

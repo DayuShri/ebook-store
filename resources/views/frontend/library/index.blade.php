@@ -102,11 +102,15 @@
 
                         {{-- Actions --}}
                         <div class="mt-4 space-y-2">
-                            <a href="{{ route('library.read', $item['library_item']->book_id) }}" 
-                               class="block w-full bg-primary-600 text-white text-center py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors">
-                                {{ $progressPercentage > 0 ? 'Lanjut Baca' : 'Baca Sekarang' }}
-                            </a>
-                            
+<button
+    type="button"
+    data-book-id="{{ $item['library_item']->book_id }}"
+    class="start-reading-btn block w-full bg-primary-600 text-white text-center py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+>
+    {{ $progressPercentage > 0 ? 'Lanjut Baca' : 'Baca Sekarang' }}
+</button>
+
+                         
                             <a href="{{ route('library.reviews', $item['library_item']->book_id) }}" 
                                class="block w-full bg-gray-100 text-gray-700 text-center py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors">
                                 Lihat Review
@@ -130,4 +134,78 @@
         </div>
     @endif
 </div>
+
+<script>
+    window.API_TOKEN = "{{ session('api_token') }}";
+</script>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.start-reading-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var bookId = this.getAttribute('data-book-id');
+            startReading(bookId);
+        });
+    });
+});
+
+function startReading(bookId) {
+    // STEP 1: create viewer session
+    fetch('http://127.0.0.1:8000/api/v1/library/viewer', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + window.API_TOKEN
+        },
+        body: JSON.stringify({
+            book_id: bookId,
+            format: 'pdf'
+        })
+    })
+    .then(function (res) {
+        return res.json();
+    })
+    .then(function (result) {
+        if (!result.success) {
+            alert(result.message || 'Gagal membuat viewer');
+            return;
+        }
+
+        var token = result.data.token;
+        var streamUrl = result.data.stream_url;
+
+        // STEP 2: start reading
+        return fetch('http://127.0.0.1:8000/api/v1/reading/start', {
+            method: 'POST',
+            headers: {
+                //'Authorization': 'Bearer ' + window.API_TOKEN,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Viewer-Token': token
+            },
+            body: JSON.stringify({
+                book_id: bookId,
+                device_info: navigator.userAgent
+            })
+        })
+        .then(function (r) {
+            return r.json();
+        })
+        .then(function (startResult) {
+            if (startResult.success) {
+                window.location.href = streamUrl;
+            } else {
+                alert(startResult.message || 'Gagal memulai membaca');
+            }
+        });
+    })
+    .catch(function (err) {
+        console.error(err);
+        alert('Terjadi kesalahan');
+    });
+}
+</script>
+@endpush
 @endsection
