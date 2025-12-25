@@ -33,7 +33,7 @@ class VoucherCalculator
         }
 
         if (!is_null($voucher->quota)) {
-            if ((int)$voucher->used_count >= (int)$voucher->quota) {
+            if ((int) $voucher->used_count >= (int) $voucher->quota) {
                 return ['valid' => false, 'reason' => 'Voucher quota exceeded'];
             }
         }
@@ -61,5 +61,12 @@ class VoucherCalculator
             'voucher' => $voucher,
             'discount_amount' => round($discountAmount, 2),
         ];
+    }
+
+    public function incrementUsage(string $voucherId): void
+    {
+        Voucher::query()
+            ->where('id', $voucherId)
+            ->increment('used_count');
     }
 }

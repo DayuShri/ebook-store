@@ -2,6 +2,9 @@
 
 namespace App\Services\Frontend;
 
+use App\Services\Frontend\CatalogService;
+use App\Services\Frontend\VoucherFrontendService;
+
 /**
  * Cart Service - Mock Data Layer
  * 
@@ -12,10 +15,12 @@ class CartService
 {
     private const SESSION_KEY = 'shopping_cart';
     private CatalogService $catalogService;
+    private VoucherFrontendService $voucherService;
 
-    public function __construct(CatalogService $catalogService)
+    public function __construct(CatalogService $catalogService, VoucherFrontendService $voucherService)
     {
         $this->catalogService = $catalogService;
+        $this->voucherService = $voucherService;
     }
 
     /**
@@ -38,21 +43,26 @@ class CartService
                     'book_id' => $item['book_id'],
                     'book' => $book,
                     'quantity' => $item['quantity'],
+                    'is_selected' => $item['is_selected'] ?? true,
                     'subtotal' => $this->calculateItemPrice($book) * $item['quantity'],
                 ];
             }
         }
 
-        $subtotal = array_sum(array_column($enrichedItems, 'subtotal'));
+        // Calculate totals only for selected items
+        $selectedItems = array_filter($enrichedItems, fn($item) => $item['is_selected']);
+        $subtotal = array_sum(array_column($selectedItems, 'subtotal'));
         $discount = $this->calculateVoucherDiscount($cart['voucher'], $subtotal);
 
         return [
             'items' => $enrichedItems,
+            'selected_items' => array_values($selectedItems),
             'voucher' => $cart['voucher'],
             'subtotal' => $subtotal,
             'discount' => $discount,
             'total' => $subtotal - $discount,
             'item_count' => array_sum(array_column($enrichedItems, 'quantity')),
+            'selected_count' => count($selectedItems),
         ];
     }
 
@@ -62,7 +72,7 @@ class CartService
     public function addItem(string $bookId): array
     {
         $cart = session(self::SESSION_KEY, ['items' => [], 'voucher' => null]);
-        
+
         // Check if book exists
         $book = $this->catalogService->getBook($bookId);
         if (!$book) {
@@ -81,6 +91,7 @@ class CartService
             'id' => uniqid('cart-'),
             'book_id' => $bookId,
             'quantity' => 1, // Ebooks are always quantity 1
+            'is_selected' => true,
         ];
 
         session([self::SESSION_KEY => $cart]);
@@ -94,8 +105,8 @@ class CartService
     public function removeItem(string $bookId): array
     {
         $cart = session(self::SESSION_KEY, ['items' => [], 'voucher' => null]);
-        
-        $cart['items'] = array_values(array_filter($cart['items'], function($item) use ($bookId) {
+
+        $cart['items'] = array_values(array_filter($cart['items'], function ($item) use ($bookId) {
             return $item['book_id'] !== $bookId;
         }));
 
@@ -118,12 +129,83 @@ class CartService
     }
 
     /**
+     * Update item selection state
+     */
+    public function updateSelection(string $bookId, bool $isSelected): array
+    {
+        $cart = session(self::SESSION_KEY, ['items' => [], 'voucher' => null]);
+
+        $found = false;
+        foreach ($cart['items'] as &$item) {
+            if ($item['book_id'] === $bookId) {
+                $item['is_selected'] = $isSelected;
+                $found = true;
+                break;
+            }
+        }
+        unset($item); // Break the reference to avoid corruption in next loop
+
+        if (!$found) {
+            return ['success' => false, 'message' => 'Buku tidak ditemukan di keranjang'];
+        }
+
+        // Re-calculate totals to check voucher validity
+        $enrichedItems = [];
+        foreach ($cart['items'] as $cartItem) { // Use distinct variable name
+            $book = $this->catalogService->getBook($cartItem['book_id']);
+            if ($book) {
+                $enrichedItems[] = [
+                    'is_selected' => $cartItem['is_selected'] ?? true,
+                    'subtotal' => $this->calculateItemPrice($book) * $cartItem['quantity'],
+                ];
+            }
+        }
+
+        $selectedItems = array_filter($enrichedItems, fn($item) => $item['is_selected']);
+        $subtotal = array_sum(array_column($selectedItems, 'subtotal'));
+
+        $message = 'Pilihan diperbarui';
+
+        // Check if voucher is still valid
+        if ($cart['voucher']) {
+            if ($subtotal < $cart['voucher']['min_purchase_amount']) {
+                // Remove voucher if minimum purchase not met
+                $cart['voucher'] = null;
+                $message = 'Pilihan diperbarui. Voucher dihapus karena minimum belanja tidak terpenuhi.';
+            }
+        }
+
+        session([self::SESSION_KEY => $cart]);
+
+        return ['success' => true, 'message' => $message];
+    }
+
+    /**
+     * Remove selected items (after checkout)
+     */
+    public function removeSelectedItems(): void
+    {
+        $cart = session(self::SESSION_KEY, ['items' => [], 'voucher' => null]);
+
+        $cart['items'] = array_values(array_filter($cart['items'], function ($item) {
+            return !($item['is_selected'] ?? true);
+        }));
+
+        // Reset voucher after checkout if cart becomes empty or logic dictates
+        if (empty($cart['items'])) {
+            $cart['voucher'] = null;
+        }
+
+        session([self::SESSION_KEY => $cart]);
+    }
+
+    /**
      * Apply voucher code
      */
     public function applyVoucher(string $code): array
     {
         $voucher = $this->validateVoucher($code);
-        
+
         if (!$voucher) {
             return ['success' => false, 'message' => 'Kode voucher tidak valid atau sudah kadaluarsa'];
         }
@@ -133,8 +215,8 @@ class CartService
         session([self::SESSION_KEY => $cart]);
 
         return [
-            'success' => true, 
-            'message' => 'Voucher berhasil diterapkan', 
+            'success' => true,
+            'message' => 'Voucher berhasil diterapkan',
             'voucher' => $voucher
         ];
     }
@@ -185,15 +267,14 @@ class CartService
      */
     private function validateVoucher(string $code): ?array
     {
-        $vouchers = $this->getMockVouchers();
         $code = strtoupper(trim($code));
-        
-        foreach ($vouchers as $voucher) {
-            if ($voucher['code'] === $code && $voucher['is_active']) {
-                return $voucher;
-            }
+        $voucher = $this->voucherService->getActiveVouchers()
+            ->firstWhere('code', $code);
+
+        if ($voucher) {
+            return $voucher->toArray();
         }
-        
+
         return null;
     }
 
@@ -227,39 +308,5 @@ class CartService
     /**
      * Mock vouchers data
      */
-    private function getMockVouchers(): array
-    {
-        return [
-            [
-                'id' => 'voucher-1',
-                'code' => 'DISKON10',
-                'description' => 'Diskon 10% untuk semua buku',
-                'discount_type' => 'percentage',
-                'discount_value' => 10,
-                'max_discount_amount' => 50000,
-                'min_purchase_amount' => 100000,
-                'is_active' => true,
-            ],
-            [
-                'id' => 'voucher-2',
-                'code' => 'HEMAT20K',
-                'description' => 'Potongan Rp 20.000',
-                'discount_type' => 'fixed',
-                'discount_value' => 20000,
-                'max_discount_amount' => null,
-                'min_purchase_amount' => 150000,
-                'is_active' => true,
-            ],
-            [
-                'id' => 'voucher-3',
-                'code' => 'WELCOME25',
-                'description' => 'Diskon 25% untuk pengguna baru',
-                'discount_type' => 'percentage',
-                'discount_value' => 25,
-                'max_discount_amount' => 75000,
-                'min_purchase_amount' => 50000,
-                'is_active' => true,
-            ],
-        ];
-    }
+    // Mock vouchers method removed as it is no longer used
 }

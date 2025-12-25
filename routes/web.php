@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/cart/add/{bookId}', [CartController::class, 'add'])->name('cart.add');
     Route::delete('/cart/remove/{bookId}', [CartController::class, 'remove'])->name('cart.remove');
     Route::put('/cart/update/{bookId}', [CartController::class, 'update'])->name('cart.update');
+    Route::patch('/cart/select/{bookId}', [CartController::class, 'updateSelection'])->name('cart.select');
+    Route::get('/cart/vouchers', [CartController::class, 'selectVoucher'])->name('cart.voucher.select');
     Route::post('/cart/voucher', [CartController::class, 'applyVoucher'])->name('cart.voucher');
     Route::delete('/cart/voucher', [CartController::class, 'removeVoucher'])->name('cart.voucher.remove');
 
@@ -88,14 +90,39 @@ Route::middleware('auth')->group(function () {
 });
 
 // ============================================================================
-// ADMIN ROUTES (placeholder)
+// ADMIN ROUTES
 // ============================================================================
 
+use App\Http\Controllers\Frontend\AdminController;
+
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    // Dashboard (with inline admin check)
     Route::get('/', function () {
         if (auth()->user()->role !== 'admin') {
             abort(403);
         }
         return view('frontend.admin.dashboard');
     })->name('dashboard');
+
+    // User Management
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    Route::get('/users/create', [AdminController::class, 'createUserForm'])->name('users.create');
+    Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
+    Route::get('/users/{id}', [AdminController::class, 'showUser'])->name('users.show');
+    Route::get('/users/{id}/edit', [AdminController::class, 'editUserForm'])->name('users.edit');
+    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('users.update');
+    Route::post('/users/{id}/activate', [AdminController::class, 'activateUser'])->name('users.activate');
+    Route::post('/users/{id}/deactivate', [AdminController::class, 'deactivateUser'])->name('users.deactivate');
+    Route::post('/users/{id}/promote', [AdminController::class, 'promoteUser'])->name('users.promote');
+    Route::post('/users/{id}/demote', [AdminController::class, 'demoteUser'])->name('users.demote');
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('users.delete');
+
+    // Voucher Management
+    Route::get('/vouchers', [AdminController::class, 'vouchers'])->name('vouchers');
+    Route::get('/vouchers/create', [AdminController::class, 'createVoucherForm'])->name('vouchers.create');
+    Route::post('/vouchers', [AdminController::class, 'storeVoucher'])->name('vouchers.store');
+    Route::get('/vouchers/{id}/edit', [AdminController::class, 'editVoucherForm'])->name('vouchers.edit');
+    Route::put('/vouchers/{id}', [AdminController::class, 'updateVoucher'])->name('vouchers.update');
+    Route::delete('/vouchers/{id}', [AdminController::class, 'deleteVoucher'])->name('vouchers.delete');
 });
+
