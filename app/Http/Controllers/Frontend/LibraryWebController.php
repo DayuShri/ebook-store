@@ -276,14 +276,10 @@ class LibraryWebController extends Controller
                 ->first();
             
             if ($book) {
-                // Get authors
-                $authors = \Illuminate\Support\Facades\DB::table('book_authors')
-                    ->join('authors', 'book_authors.author_id', '=', 'authors.id')
-                    ->where('book_authors.book_id', $bookId)
-                    ->select('authors.name')
-                    ->get()
-                    ->map(fn($a) => ['name' => $a->name])
-                    ->toArray();
+                // Author is now a simple string column, not a relationship
+                $authors = $book->author 
+                    ? [['name' => $book->author]] 
+                    : [['name' => 'Unknown Author']];
                 
                 return [
                     'id' => $book->id,

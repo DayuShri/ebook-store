@@ -20,16 +20,42 @@ class WalletController extends Controller
     /**
      * Get authentication token for API calls
      * Supports both API token (Sanctum) and web session token
+     * Creates a session token for web users if needed
      */
     protected function getAuthToken(): ?string
     {
+        $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
         // Try to get token from current access token (API auth)
-        if (auth()->user()->currentAccessToken()) {
-            return auth()->user()->currentAccessToken()->token;
+        if ($user->currentAccessToken()) {
+            return $user->currentAccessToken()->token;
         }
         
-        // Fall back to session token (web auth)
-        return session('api_token');
+        // For web auth, check if session token exists
+        $sessionToken = session('api_token');
+        if ($sessionToken) {
+            // Verify the token is still valid
+            $tokenExists = \Laravel\Sanctum\PersonalAccessToken::findToken($sessionToken);
+            if ($tokenExists && $tokenExists->tokenable_id === $user->id) {
+                return $sessionToken;
+            }
+        }
+
+        // Create a new session token for web-authenticated users
+        try {
+            $token = $user->createToken('web-session-' . now()->timestamp)->plainTextToken;
+            session(['api_token' => $token]);
+            return $token;
+        } catch (\Exception $e) {
+            Log::error('Failed to create session token', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
 

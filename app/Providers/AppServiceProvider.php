@@ -34,41 +34,34 @@ class AppServiceProvider extends ServiceProvider
 
             // Wallet balance for authenticated users
             $walletBalance = 0;
+            $cartCount = 0;
+            
             if (auth()->check()) {
                 try {
-                    $token = $this->getAuthToken();
-                    if ($token) {
-                        $response = \Illuminate\Support\Facades\Http::withToken($token)
-                            ->get(config('app.url') . '/api/v1/wallet/me');
-                        
-                        if ($response->successful()) {
-                            $data = $response->json('data');
-                            $walletBalance = $data['balance'] ?? 0;
-                        }
-                    }
+                    // For backend-to-backend, call service directly instead of HTTP
+                    // This avoids timeout issues with self-referential HTTP calls
+                    $walletService = app(\App\Modules\Payment\Services\WalletService::class);
+                    $wallet = $walletService->getWallet(auth()->id());
+                    $walletBalance = $wallet->balance ?? 0;
                 } catch (\Exception $e) {
                     // Silently fail - wallet balance will remain 0
                     \Log::debug('Failed to fetch wallet balance for navbar', [
                         'error' => $e->getMessage()
                     ]);
                 }
+
+                // Get cart count from database
+                try {
+                    $cartCount = \App\Modules\Order\Models\Cart::where('user_id', auth()->id())->count();
+                } catch (\Exception $e) {
+                    \Log::debug('Failed to fetch cart count for navbar', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
             
             $view->with('walletBalance', $walletBalance);
+            $view->with('cartCount', $cartCount);
         });
-    }
-
-    /**
-     * Get authentication token for API calls
-     */
-    protected function getAuthToken(): ?string
-    {
-        // Try to get token from current access token (API auth)
-        if (auth()->user()->currentAccessToken()) {
-            return auth()->user()->currentAccessToken()->token;
-        }
-        
-        // Fall back to session token (web auth)
-        return session('api_token');
     }
 }

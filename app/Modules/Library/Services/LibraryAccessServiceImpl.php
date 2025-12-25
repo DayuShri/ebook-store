@@ -19,7 +19,7 @@ class LibraryAccessServiceImpl implements LibraryAccessService
 
     public function getBookDetails(string $bookId): array
     {
-        $book = Book::with(['authors', 'publisher'])->find($bookId);
+        $book = Book::find($bookId);
         
         if (!$book) {
             return [
@@ -33,7 +33,7 @@ class LibraryAccessServiceImpl implements LibraryAccessService
         return [
             'id' => $book->id,
             'title' => $book->title,
-            'author' => $book->authors->pluck('name')->join(', ') ?: 'Unknown Author',
+            'author' => $book->author ?: 'Unknown Author',
             'cover_url' => $book->cover_url
         ];
     }

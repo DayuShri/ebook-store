@@ -133,6 +133,37 @@ class PaymentService
                 'updated_at' => now(),
             ]);
 
+            // Grant library access to all books in the order
+            try {
+                $orderItems = DB::table('order_items')
+                    ->where('order_id', $orderId)
+                    ->get();
+
+                // Use direct service injection for backend-to-backend communication
+                $libraryService = app(\App\Modules\Library\Services\LibraryService::class);
+
+                foreach ($orderItems as $item) {
+                    try {
+                        $libraryService->grant($userId, $item->book_id, $orderId);
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to grant library access for item', [
+                            'user_id' => $userId,
+                            'book_id' => $item->book_id,
+                            'order_id' => $orderId,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Exception granting library access after payment', [
+                    'order_id' => $orderId,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                ]);
+                // Don't fail the payment if library grant fails
+                // The fallback in CartController will handle it
+            }
+
             return Payment::create([
                 'id' => Str::uuid(), 
                 'payment_number' => 'PAY-ORD-' . strtoupper(Str::random(8)),
