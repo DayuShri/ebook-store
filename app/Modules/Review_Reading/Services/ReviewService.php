@@ -34,6 +34,22 @@ class ReviewService
                 'is_verified_purchase' => true // DUMMY
             ]
         );
+
+        // Update book's average rating
+        $this->updateBookAverageRating($data['book_id']);
+    }
+
+    /**
+     * Calculate and update average rating for a book
+     */
+    protected function updateBookAverageRating(string $bookId): void
+    {
+        $avgRating = Review::where('book_id', $bookId)->avg('rating');
+        
+        // Update the books table
+        DB::table('books')
+            ->where('id', $bookId)
+            ->update(['avg_rating' => $avgRating]);
     }
 
     public function helpful(string $userId, string $reviewId, bool $isHelpful): void
@@ -92,7 +108,11 @@ class ReviewService
             ->where('user_id', $userId)
             ->firstOrFail();
 
+        $bookId = $review->book_id;
         $review->delete();
+        
+        // Recalculate average rating after deletion
+        $this->updateBookAverageRating($bookId);
     }
 
     public function getUserReviews(string $userId)
