@@ -71,6 +71,57 @@ class AdminUserController extends Controller
     }
 
     /**
+     * Create a new user.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|unique:users,email',
+                'password' => 'required|string|min:6',
+                'full_name' => 'required|string|max:255',
+                'role' => 'required|in:user,admin',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $user = User::create([
+                'email' => $request->email,
+                'password_hash' => bcrypt($request->password),
+                'role' => $request->role,
+                'is_active' => true,
+            ]);
+
+            // Create profile
+            $user->profile()->create([
+                'full_name' => $request->full_name,
+            ]);
+
+            // Load the profile relationship
+            $user->load('profile');
+
+            return response()->json([
+                'message' => 'User created successfully',
+                'data' => new UserResource($user),
+            ], 201);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create user', [
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to create user',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Activate a user account.
      */
     public function activate(string $id): JsonResponse

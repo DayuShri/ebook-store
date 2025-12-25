@@ -2,24 +2,23 @@
 
 namespace App\Services\Frontend;
 
-use App\Services\Frontend\CatalogService;
 use App\Services\Frontend\VoucherFrontendService;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Cart Service - Mock Data Layer
+ * Cart Service
  * 
- * This service provides mock cart functionality.
+ * This service provides cart functionality.
  * Uses session storage for cart state.
  */
 class CartService
 {
     private const SESSION_KEY = 'shopping_cart';
-    private CatalogService $catalogService;
     private VoucherFrontendService $voucherService;
 
-    public function __construct(CatalogService $catalogService, VoucherFrontendService $voucherService)
+    public function __construct(VoucherFrontendService $voucherService)
     {
-        $this->catalogService = $catalogService;
         $this->voucherService = $voucherService;
     }
 
@@ -36,7 +35,7 @@ class CartService
         // Enrich items with book data
         $enrichedItems = [];
         foreach ($cart['items'] as $item) {
-            $book = $this->catalogService->getBook($item['book_id']);
+            $book = $this->getBook($item['book_id']);
             if ($book) {
                 $enrichedItems[] = [
                     'id' => $item['id'],
@@ -74,7 +73,7 @@ class CartService
         $cart = session(self::SESSION_KEY, ['items' => [], 'voucher' => null]);
 
         // Check if book exists
-        $book = $this->catalogService->getBook($bookId);
+        $book = $this->getBook($bookId);
         if (!$book) {
             return ['success' => false, 'message' => 'Buku tidak ditemukan'];
         }
@@ -152,7 +151,7 @@ class CartService
         // Re-calculate totals to check voucher validity
         $enrichedItems = [];
         foreach ($cart['items'] as $cartItem) { // Use distinct variable name
-            $book = $this->catalogService->getBook($cartItem['book_id']);
+            $book = $this->getBook($cartItem['book_id']);
             if ($book) {
                 $enrichedItems[] = [
                     'is_selected' => $cartItem['is_selected'] ?? true,
@@ -306,7 +305,45 @@ class CartService
     }
 
     /**
-     * Mock vouchers data
+     * Get book from Catalog API
      */
-    // Mock vouchers method removed as it is no longer used
+    private function getBook(string $bookId): ?array
+    {
+        try {
+            $token = auth()->user()?->currentAccessToken()?->token;
+            if (!$token) {
+                Log::warning('No auth token available for catalog API call');
+                return null;
+            }
+
+            $response = Http::withToken($token)
+                ->get(config('app.url') . '/api/v1/catalog/books/' . $bookId);
+
+            if ($response->successful()) {
+                $data = $response->json('data');
+                // Transform API response to match expected format
+                return [
+                    'id' => $data['id'],
+                    'title' => $data['title'],
+                    'price' => $data['price'],
+                    'discount_percentage' => $data['discount_percentage'] ?? 0,
+                    'cover_image_url' => $data['cover_image_url'] ?? null,
+                    'authors' => $data['authors'] ?? [],
+                    'categories' => $data['categories'] ?? [],
+                ];
+            }
+
+            Log::error('Failed to fetch book from catalog API', [
+                'book_id' => $bookId,
+                'status' => $response->status(),
+            ]);
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Exception fetching book from catalog API', [
+                'book_id' => $bookId,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
 }

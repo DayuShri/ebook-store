@@ -42,6 +42,7 @@ Route::prefix('user')->middleware(['auth:sanctum', 'token.valid'])->group(functi
 Route::prefix('admin')->middleware(['auth:sanctum', 'token.valid', 'admin'])->group(function () {
     // User management
     Route::get('/users', [AdminUserController::class, 'index']);
+    Route::post('/users', [AdminUserController::class, 'store']);
     Route::get('/users/statistics', [AdminUserController::class, 'statistics']);
     Route::get('/users/{id}', [AdminUserController::class, 'show']);
     Route::post('/users/{id}/activate', [AdminUserController::class, 'activate']);

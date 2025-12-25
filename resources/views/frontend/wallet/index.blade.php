@@ -29,34 +29,42 @@
                     <div class="p-4 hover:bg-gray-50 transition-colors">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
+                                @php
+                                    $type = $transaction['type'] ?? 'unknown';
+                                @endphp
                                 <div class="w-10 h-10 rounded-full flex items-center justify-center mr-4
-                                    {{ $transaction['type'] === 'top_up' ? 'bg-green-100' : '' }}
-                                    {{ $transaction['type'] === 'payment' ? 'bg-red-100' : '' }}
-                                    {{ $transaction['type'] === 'refund' ? 'bg-blue-100' : '' }}">
-                                    @if($transaction['type'] === 'top_up')
+                                    {{ $type === 'top_up' ? 'bg-green-100' : '' }}
+                                    {{ $type === 'payment' ? 'bg-red-100' : '' }}
+                                    {{ $type === 'refund' ? 'bg-blue-100' : '' }}
+                                    {{ $type === 'unknown' ? 'bg-gray-100' : '' }}">
+                                    @if($type === 'top_up')
                                         <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                                         </svg>
-                                    @elseif($transaction['type'] === 'payment')
+                                    @elseif($type === 'payment')
                                         <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
                                         </svg>
-                                    @else
+                                    @elseif($type === 'refund')
                                         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                        </svg>
+                                    @else
+                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                         </svg>
                                     @endif
                                 </div>
                                 <div>
-                                    <p class="font-medium text-gray-900">{{ $transaction['description'] }}</p>
-                                    <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($transaction['created_at'])->format('d M Y, H:i') }}</p>
+                                    <p class="font-medium text-gray-900">{{ $transaction['description'] ?? 'Transaksi' }}</p>
+                                    <p class="text-sm text-gray-500">{{ isset($transaction['created_at']) ? \Carbon\Carbon::parse($transaction['created_at'])->format('d M Y, H:i') : '-' }}</p>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="font-bold {{ $transaction['amount'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $transaction['amount'] >= 0 ? '+' : '' }}Rp {{ number_format(abs($transaction['amount']), 0, ',', '.') }}
+                                <p class="font-bold {{ ($transaction['amount'] ?? 0) >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ ($transaction['amount'] ?? 0) >= 0 ? '+' : '' }}Rp {{ number_format(abs($transaction['amount'] ?? 0), 0, ',', '.') }}
                                 </p>
-                                <p class="text-sm text-gray-400">{{ $transaction['reference_id'] }}</p>
+                                <p class="text-sm text-gray-400">{{ $transaction['reference_id'] ?? '-' }}</p>
                             </div>
                         </div>
                     </div>

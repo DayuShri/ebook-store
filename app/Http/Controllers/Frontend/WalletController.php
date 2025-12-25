@@ -18,13 +18,29 @@ class WalletController extends Controller
     }
 
     /**
+     * Get authentication token for API calls
+     * Supports both API token (Sanctum) and web session token
+     */
+    protected function getAuthToken(): ?string
+    {
+        // Try to get token from current access token (API auth)
+        if (auth()->user()->currentAccessToken()) {
+            return auth()->user()->currentAccessToken()->token;
+        }
+        
+        // Fall back to session token (web auth)
+        return session('api_token');
+    }
+
+
+    /**
      * Display wallet dashboard
      */
     public function index()
     {
         try {
             // Call Payment module's Public API
-            $response = Http::withToken(auth()->user()->currentAccessToken()->token)
+            $response = Http::withToken($this->getAuthToken())
                 ->get(config('app.url') . '/api/v1/wallet/me');
 
             if ($response->failed()) {
@@ -69,7 +85,7 @@ class WalletController extends Controller
     {
         try {
             // Call Payment module's Public API
-            $response = Http::withToken(auth()->user()->currentAccessToken()->token)
+            $response = Http::withToken($this->getAuthToken())
                 ->get(config('app.url') . '/api/v1/wallet/me');
 
             $balance = 0;
@@ -110,7 +126,7 @@ class WalletController extends Controller
 
         try {
             // Call Payment module's Public API to create top-up
-            $response = Http::withToken(auth()->user()->currentAccessToken()->token)
+            $response = Http::withToken($this->getAuthToken())
                 ->post(config('app.url') . '/api/v1/payment/credit', [
                     'amount' => (float) $amount,
                 ]);

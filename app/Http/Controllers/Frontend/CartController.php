@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Frontend\CartService;
 use App\Services\Frontend\LibraryService;
 use App\Services\Frontend\VoucherFrontendService;
+use App\Services\Frontend\WalletFrontendService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +19,6 @@ class CartController extends Controller
 
     public function __construct(
         CartService $cartService,
-        WalletFrontendService $walletService,
         LibraryService $libraryService,
         VoucherFrontendService $voucherService
     ) {

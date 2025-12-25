@@ -35,6 +35,10 @@ class ApiAuthController extends Controller
             Auth::login($user, false);
             $request->session()->regenerate();
             
+            // Create Sanctum token for internal API calls
+            $token = $user->createToken('web-session')->plainTextToken;
+            $request->session()->put('api_token', $token);
+            
             // Update last login manually
             $user->timestamps = false;
             $user->last_login_at = now();

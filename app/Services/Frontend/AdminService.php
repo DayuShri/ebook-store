@@ -114,10 +114,30 @@ class AdminService
                 return ['success' => true, 'message' => 'Pengguna berhasil dibuat', 'data' => $response->json()];
             }
 
-            return ['success' => false, 'message' => $response->json()['message'] ?? 'Gagal membuat pengguna'];
+            // Log the full response for debugging
+            Log::error('Failed to create user', [
+                'status' => $response->status(),
+                'response' => $response->json(),
+                'data_sent' => $data,
+            ]);
+
+            // Return detailed error message
+            $responseData = $response->json();
+            $message = $responseData['message'] ?? 'Gagal membuat pengguna';
+            
+            // If there are validation errors, include them in the message
+            if (isset($responseData['errors'])) {
+                $errors = [];
+                foreach ($responseData['errors'] as $field => $messages) {
+                    $errors[] = implode(', ', (array)$messages);
+                }
+                $message .= ': ' . implode('; ', $errors);
+            }
+
+            return ['success' => false, 'message' => $message];
         } catch (\Exception $e) {
             Log::error('Failed to create user', ['error' => $e->getMessage()]);
-            return ['success' => false, 'message' => 'Gagal membuat pengguna'];
+            return ['success' => false, 'message' => 'Gagal membuat pengguna: ' . $e->getMessage()];
         }
     }
 
