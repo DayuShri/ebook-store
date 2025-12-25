@@ -21,6 +21,10 @@ class UpdateBookRequest extends FormRequest
 
             'category_ids' => 'sometimes|array',
             'category_ids.*' => 'uuid|exists:book_categories,id',
+
+            'author_ids' => 'sometimes|array',
+            'author_ids.*' => 'string', 
+            'author_ids.*' => 'uuid',
         ];
     }
 }

@@ -29,6 +29,10 @@ class StoreBookRequest extends FormRequest
 
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'uuid|exists:book_categories,id',
+
+            'author_ids' => 'nullable|array',
+            'author_ids.*' => 'string', // author service teman, jadi gak bisa exists di db kamu
+            'author_ids.*' => 'uuid',
         ];
     }
 }
