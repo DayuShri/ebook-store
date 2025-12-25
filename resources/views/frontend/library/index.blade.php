@@ -145,67 +145,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.start-reading-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var bookId = this.getAttribute('data-book-id');
-            startReading(bookId);
+            // Simply redirect to the read route - the controller handles everything
+            window.location.href = '/library/read/' + bookId;
         });
     });
 });
-
-function startReading(bookId) {
-    // STEP 1: create viewer session
-    fetch('http://127.0.0.1:8000/api/v1/library/viewer', {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + window.API_TOKEN
-        },
-        body: JSON.stringify({
-            book_id: bookId,
-            format: 'pdf'
-        })
-    })
-    .then(function (res) {
-        return res.json();
-    })
-    .then(function (result) {
-        if (!result.success) {
-            alert(result.message || 'Gagal membuat viewer');
-            return;
-        }
-
-        var token = result.data.token;
-        var streamUrl = result.data.stream_url;
-
-        // STEP 2: start reading
-        return fetch('http://127.0.0.1:8000/api/v1/reading/start', {
-            method: 'POST',
-            headers: {
-                //'Authorization': 'Bearer ' + window.API_TOKEN,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-Viewer-Token': token
-            },
-            body: JSON.stringify({
-                book_id: bookId,
-                device_info: navigator.userAgent
-            })
-        })
-        .then(function (r) {
-            return r.json();
-        })
-        .then(function (startResult) {
-            if (startResult.success) {
-                window.location.href = streamUrl;
-            } else {
-                alert(startResult.message || 'Gagal memulai membaca');
-            }
-        });
-    })
-    .catch(function (err) {
-        console.error(err);
-        alert('Terjadi kesalahan');
-    });
-}
 </script>
 @endpush
 @endsection

@@ -269,10 +269,10 @@ class LibraryWebController extends Controller
      */
     private function getBookDetails(string $bookId): array
     {
-        // Use internal Catalog BookService directly (same application)
+        // Use internal Catalog CatalogService directly (same application)
         try {
-            $bookService = app(\App\Modules\Catalog\Services\BookService::class);
-            $book = $bookService->detail($bookId);
+            $catalogService = app(\App\Modules\Catalog\Services\CatalogService::class);
+            $book = $catalogService->getBookDetail($bookId);
             
             if ($book) {
                 // Handle author - single string field in Catalog model

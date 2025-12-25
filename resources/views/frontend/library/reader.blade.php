@@ -35,6 +35,10 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    // Set PDF.js worker to suppress deprecation warning
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
 
 <script>
 /* ==============================
@@ -42,9 +46,17 @@
 ================================ */
 const STREAM_URL = @json($streamUrl);
 const BOOK_ID = @json($bookId);
-const INITIAL_PAGE = {{ $progress->last_page_read ?? 1 }};
+const INITIAL_PAGE = Math.max(1, {{ $progress->last_page_read ?? 1 }});
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
-const VIEWER_TOKEN = sessionStorage.getItem('viewer_token');
+const VIEWER_TOKEN = @json($viewerToken);
+
+// Debug logging
+console.log('PDF Reader Config:', {
+    streamUrl: STREAM_URL,
+    bookId: BOOK_ID,
+    initialPage: INITIAL_PAGE,
+    viewerToken: VIEWER_TOKEN
+});
 
 let pdfDoc = null;
 let currentPage = INITIAL_PAGE;
@@ -61,35 +73,27 @@ if (!VIEWER_TOKEN) {
 }
 
 /* ==============================
-   START READING
-================================ */
-async function startReading() {
-    await fetch('/api/reading/start', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Viewer-Token': VIEWER_TOKEN,
-            'X-CSRF-TOKEN': CSRF
-        },
-        body: JSON.stringify({
-            book_id: BOOK_ID,
-            device_info: navigator.userAgent
-        })
-    });
-}
-
-/* ==============================
    LOAD PDF
 ================================ */
 async function loadPDF() {
-    const loadingTask = pdfjsLib.getDocument(STREAM_URL);
-    pdfDoc = await loadingTask.promise;
+    console.log('Starting PDF load from:', STREAM_URL);
+    
+    try {
+        const loadingTask = pdfjsLib.getDocument(STREAM_URL);
+        console.log('PDF.js loading task created');
+        
+        pdfDoc = await loadingTask.promise;
+        console.log('PDF loaded successfully, pages:', pdfDoc.numPages);
 
-    totalPages = pdfDoc.numPages;
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('pdf-canvas').classList.remove('hidden');
+        totalPages = pdfDoc.numPages;
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('pdf-canvas').classList.remove('hidden');
 
-    await renderPage(currentPage);
+        await renderPage(currentPage);
+    } catch (error) {
+        console.error('PDF loading failed:', error);
+        alert('Gagal memuat PDF: ' + error.message);
+    }
 }
 
 /* ==============================
@@ -110,7 +114,7 @@ async function renderPage(page) {
 
     currentPage = page;
     updateUI();
-    debounceProgress();
+    saveProgress();
 }
 
 /* ==============================
@@ -122,45 +126,28 @@ function updateUI() {
 }
 
 /* ==============================
-   UPDATE PROGRESS
+   SAVE PROGRESS (to Laravel route)
 ================================ */
-function debounceProgress() {
+function saveProgress() {
     clearTimeout(progressTimer);
-
-    progressTimer = setTimeout(updateProgress, 3000);
-}
-
-async function updateProgress() {
-    await fetch('/api/reading/progress', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Viewer-Token': VIEWER_TOKEN,
-            'X-CSRF-TOKEN': CSRF
-        },
-        body: JSON.stringify({
-            book_id: BOOK_ID,
-            current_page: currentPage
-        })
-    });
-}
-
-/* ==============================
-   FINISH READING
-================================ */
-async function finishReading() {
-    await fetch('/api/reading/finish', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Viewer-Token': VIEWER_TOKEN,
-            'X-CSRF-TOKEN': CSRF
-        },
-        body: JSON.stringify({
-            book_id: BOOK_ID,
-            last_page_read: currentPage
-        })
-    });
+    
+    progressTimer = setTimeout(async () => {
+        try {
+            await fetch(`/library/progress/${BOOK_ID}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': CSRF
+                },
+                body: JSON.stringify({
+                    last_page_read: currentPage,
+                    total_pages: totalPages
+                })
+            });
+        } catch (e) {
+            console.error('Failed to save progress', e);
+        }
+    }, 3000);
 }
 
 /* ==============================
@@ -171,14 +158,20 @@ document.addEventListener('keydown', e => {
     if (e.key === 'ArrowLeft') renderPage(currentPage - 1);
 });
 
-window.addEventListener('beforeunload', finishReading);
+window.addEventListener('beforeunload', () => {
+    clearTimeout(progressTimer);
+    // Save final progress
+    navigator.sendBeacon(`/library/progress/${BOOK_ID}`, JSON.stringify({
+        last_page_read: currentPage,
+        total_pages: totalPages
+    }));
+});
 
 /* ==============================
    INIT
 ================================ */
 (async () => {
     try {
-        await startReading();
         await loadPDF();
     } catch (e) {
         alert('Gagal membuka buku');
