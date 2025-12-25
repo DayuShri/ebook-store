@@ -1,0 +1,468 @@
+{
+    "info": {
+        "_postman_id": "ebook-store-order-voucher-tests",
+        "name": "Ebook Store - Order & Voucher Integration Tests",
+        "description": "Complete flow to test Voucher creation by Admin and usage by User during Checkout.\n\n## Flow:\n1. Admin triggers Login to get token.\n2. Admin creates a new Voucher.\n3. User triggers Login to get token.\n4. User gets a book from Catalog.\n5. User adds book to Cart.\n6. User previews checkout with the created Voucher.\n7. User places order with the created Voucher.\n8. Admin verifies that the Voucher usage count has incremented.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "https://8soqnjdlpd.sharedwithexpose.com/api"
+        },
+        {
+            "key": "admin_token",
+            "value": ""
+        },
+        {
+            "key": "user_token",
+            "value": ""
+        },
+        {
+            "key": "book_id",
+            "value": ""
+        },
+        {
+            "key": "voucher_code",
+            "value": ""
+        },
+        {
+            "key": "voucher_id",
+            "value": ""
+        }
+    ],
+    "item": [
+        {
+            "name": "👮 Admin Actions",
+            "item": [
+                {
+                    "name": "1. Admin Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.access_token) {",
+                                    "    pm.collectionVariables.set('admin_token', jsonData.data.access_token);",
+                                    "    console.log('Admin token saved');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Login as Admin to manage vouchers. (Adjust credentials if needed)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2. Create Voucher",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "var randomCode = 'TEST' + Math.floor(Math.random() * 10000);",
+                                    "pm.collectionVariables.set('voucher_code', randomCode);",
+                                    "console.log('Generated Voucher Code: ' + randomCode);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status code is 201', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "});",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.id) {",
+                                    "    pm.collectionVariables.set('voucher_id', jsonData.data.id);",
+                                    "    console.log('Voucher ID saved: ' + jsonData.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"{{voucher_code}}\",\n    \"description\": \"Voucher Testing {{voucher_code}}\",\n    \"discount_type\": \"percentage\",\n    \"discount_value\": 20,\n    \"max_discount_amount\": 25000,\n    \"min_purchase_amount\": 10000,\n    \"quota\": 100,\n    \"valid_from\": \"2024-01-01\",\n    \"valid_until\": \"2030-12-31\",\n    \"is_active\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/v1/vouchers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "vouchers"
+                            ]
+                        },
+                        "description": "Create a new voucher with dynamic code."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2b. Update Voucher",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"description\": \"Updated description\",\n    \"quota\": 200\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/v1/vouchers/{{voucher_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "vouchers",
+                                "{{voucher_id}}"
+                            ]
+                        },
+                        "description": "Update voucher details (e.g., quota, description). Code cannot be changed."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "👤 User Actions",
+            "item": [
+                {
+                    "name": "3. User Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.access_token) {",
+                                    "    pm.collectionVariables.set('user_token', jsonData.data.access_token);",
+                                    "    console.log('User token saved');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"wallet_test@example.com\",\n    \"password\": \"Test@123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4. Get Catalog (Get Book ID)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.length > 0) {",
+                                    "    pm.collectionVariables.set('book_id', jsonData.data[0].id);",
+                                    "    console.log('Book ID saved: ' + jsonData.data[0].id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{user_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "5. Add to Cart",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{user_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"book_id\": \"{{book_id}}\",\n    \"quantity\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/cart/items",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "cart",
+                                "items"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "6. Checkout Preview (With Voucher)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Voucher applied in preview', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.success).to.be.true;",
+                                    "    pm.expect(jsonData.data.discount_amount).to.be.above(0);",
+                                    "    pm.expect(jsonData.data.voucher_id).to.not.be.null;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{user_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"selected_book_ids\": [\"{{book_id}}\"],\n    \"voucher_code\": \"{{voucher_code}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/checkout/preview",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "checkout",
+                                "preview"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "7. Place Order (With Voucher)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Order placed successfully', function () {",
+                                    "    pm.response.to.have.status(201);",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.expect(jsonData.data.order.voucher_id).to.not.be.null;",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{user_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"selected_book_ids\": [\"{{book_id}}\"],\n    \"voucher_code\": \"{{voucher_code}}\",\n    \"payment_method\": \"transfer\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/checkout/place-order",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "checkout",
+                                "place-order"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "👮 Verification",
+            "item": [
+                {
+                    "name": "8. Verify Voucher Usage Count",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Used count incremented', function () {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    // Assuming this was a fresh voucher with 0 usage",
+                                    "    pm.expect(jsonData.data.used_count).to.be.at.least(1);",
+                                    "    console.log('Used count is now: ' + jsonData.data.used_count);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{admin_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/v1/vouchers/{{voucher_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "v1",
+                                "vouchers",
+                                "{{voucher_id}}"
+                            ]
+                        },
+                        "description": "Check if used_count has increased."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

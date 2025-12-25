@@ -5,17 +5,23 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Services\Frontend\AdminService;
 use App\Services\Frontend\CartService;
+use App\Services\Frontend\VoucherFrontendService;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
     protected AdminService $adminService;
     protected CartService $cartService;
+    protected VoucherFrontendService $voucherService;
 
-    public function __construct(AdminService $adminService, CartService $cartService)
-    {
+    public function __construct(
+        AdminService $adminService,
+        CartService $cartService,
+        VoucherFrontendService $voucherService
+    ) {
         $this->adminService = $adminService;
         $this->cartService = $cartService;
+        $this->voucherService = $voucherService;
     }
 
     /**
@@ -36,7 +42,7 @@ class AdminController extends Controller
         $this->checkAdmin();
         $perPage = $request->get('per_page', 15);
         $page = $request->get('page', 1);
-        
+
         $result = $this->adminService->getUsers($perPage, $page);
         $stats = $this->adminService->getUserStatistics();
 
@@ -218,5 +224,107 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.users')->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    // ==========================================
+    // VOUCHER MANAGEMENT
+    // ==========================================
+
+    public function vouchers(Request $request)
+    {
+        $this->checkAdmin();
+        $vouchers = $this->voucherService->getVouchers();
+
+        return view('frontend.admin.vouchers.index', [
+            'vouchers' => $vouchers,
+            'cartCount' => $this->cartService->getItemCount(),
+        ]);
+    }
+
+    public function createVoucherForm()
+    {
+        $this->checkAdmin();
+        return view('frontend.admin.vouchers.create', [
+            'cartCount' => $this->cartService->getItemCount(),
+        ]);
+    }
+
+    public function storeVoucher(Request $request)
+    {
+        $this->checkAdmin();
+        $data = $request->validate([
+            'code' => 'required|string|unique:vouchers,code|max:50',
+            'discount_type' => 'required|in:percentage,fixed',
+            'discount_value' => 'required|numeric|min:0',
+            'min_purchase_amount' => 'nullable|numeric|min:0',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'quota' => 'nullable|integer|min:1',
+            'valid_from' => 'required|date',
+            'valid_until' => 'required|date|after_or_equal:valid_from',
+            'description' => 'nullable|string',
+        ]);
+
+        $data['is_active'] = $request->has('is_active'); // Handle checkbox
+
+        $result = $this->voucherService->createVoucher($data);
+
+        if ($result['success']) {
+            return redirect()->route('admin.vouchers')->with('success', $result['message']);
+        }
+
+        return back()->withInput()->with('error', $result['message']);
+    }
+
+    public function editVoucherForm($id)
+    {
+        $this->checkAdmin();
+        $voucher = $this->voucherService->getVoucher($id);
+
+        if (!$voucher) {
+            return back()->with('error', 'Voucher not found');
+        }
+
+        return view('frontend.admin.vouchers.edit', [
+            'voucher' => $voucher,
+            'cartCount' => $this->cartService->getItemCount(),
+        ]);
+    }
+
+    public function updateVoucher(Request $request, $id)
+    {
+        $this->checkAdmin();
+        $data = $request->validate([
+            'code' => 'required|string|max:50|unique:vouchers,code,' . $id,
+            'discount_type' => 'required|in:percentage,fixed',
+            'discount_value' => 'required|numeric|min:0',
+            'min_purchase_amount' => 'nullable|numeric|min:0',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'quota' => 'nullable|integer|min:1',
+            'valid_from' => 'required|date',
+            'valid_until' => 'required|date|after_or_equal:valid_from',
+            'description' => 'nullable|string',
+        ]);
+
+        $data['is_active'] = $request->has('is_active');
+
+        $result = $this->voucherService->updateVoucher($id, $data);
+
+        if ($result['success']) {
+            return redirect()->route('admin.vouchers')->with('success', $result['message']);
+        }
+
+        return back()->withInput()->with('error', $result['message']);
+    }
+
+    public function deleteVoucher($id)
+    {
+        $this->checkAdmin();
+        $result = $this->voucherService->deleteVoucher($id);
+
+        if (request()->ajax()) {
+            return response()->json($result);
+        }
+
+        return back()->with($result['success'] ? 'success' : 'error', $result['message']);
     }
 }

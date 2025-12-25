@@ -29,6 +29,7 @@ class WalletController extends Controller
                 ->get();
 
             return response()->json([
+                'success' => true,
                 'data' => [
                     'balance' => $wallet->balance,
                     'transactions' => $transactions,
@@ -41,8 +42,8 @@ class WalletController extends Controller
             ]);
             
             return response()->json([
-                'message' => 'Failed to retrieve wallet information',
-                'error' => $e->getMessage(),
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -62,6 +63,7 @@ class WalletController extends Controller
             $wallet = $this->walletService->getWallet($user->id);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Top-up successful',
                 'data' => [
                     'transaction' => $transaction,
@@ -76,8 +78,8 @@ class WalletController extends Controller
             ]);
             
             return response()->json([
-                'message' => 'Top-up failed',
-                'error' => $e->getMessage(),
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
