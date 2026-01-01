@@ -101,6 +101,12 @@ class CatalogController extends Controller
 
             // 5) Supaya blade kamu yang lama (pakai array) tetap jalan
             ->through(function (Book $b) {
+                // Check wishlist status for authenticated users
+                $isInWishlist = false;
+                if (auth()->check()) {
+                    $isInWishlist = $this->userService->isInWishlist($b->id);
+                }
+
                 return [
                     'id' => $b->id,
                     'title' => $b->title,
@@ -109,6 +115,7 @@ class CatalogController extends Controller
                     'price' => (string) $b->price,
                     'cover_image_url' => $b->cover_image_url,
                     'discount_percentage' => $b->discount_percentage,
+                    'is_in_wishlist' => $isInWishlist,
                     'categories' => $b->categories->map(fn($c) => [
                         'id' => $c->id,
                         'name' => $c->name,
@@ -200,6 +207,7 @@ class CatalogController extends Controller
                     'author' => $b->author,
                     'price' => (string) $b->price,
                     'cover_image_url' => $b->cover_image_url,
+                    'is_in_wishlist' => auth()->check() ? $this->userService->isInWishlist($b->id) : false,
                     'categories' => $b->categories->map(fn($c) => [
                         'id' => $c->id,
                         'name' => $c->name,

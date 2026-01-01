@@ -86,8 +86,8 @@ class CartController extends Controller
                 try {
                     $book = $catalogService->getBookDetail($item['book_id']);
                     if ($book) {
-                        $price = $book->price;
-                        $discountPct = $book->discount_percentage ?? 0;
+                        $price = $book['price'];
+                        $discountPct = $book['discount_percentage'] ?? 0;
                         $effectivePrice = $price - ($price * $discountPct / 100);
                         $quantity = $item['quantity'] ?? 1;
                         $itemSubtotal = $effectivePrice * $quantity;
@@ -98,13 +98,13 @@ class CartController extends Controller
                             'quantity' => $quantity,
                             'is_selected' => true, // Backend cart doesn't have selection yet
                             'book' => [
-                                'id' => $book->id,
-                                'title' => $book->title,
-                                'price' => $book->price,
-                                'discount_percentage' => $book->discount_percentage ?? 0,
-                                'cover_image_url' => $book->cover_image_url,
-                                'authors' => $book->authors ?? [],
-                                'categories' => $book->categories ?? [],
+                                'id' => $book['id'],
+                                'title' => $book['title'],
+                                'price' => $book['price'],
+                                'discount_percentage' => $book['discount_percentage'] ?? 0,
+                                'cover_image_url' => $book['cover_image_url'],
+                                'authors' => isset($book['author']) ? [['name' => $book['author']]] : [],
+                                'categories' => $book['categories'] ?? [],
                             ],
                             'subtotal' => $itemSubtotal,
                         ];

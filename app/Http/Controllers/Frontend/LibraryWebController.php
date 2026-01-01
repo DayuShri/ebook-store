@@ -277,21 +277,21 @@ class LibraryWebController extends Controller
             if ($book) {
                 // Handle author - single string field in Catalog model
                 $authors = [];
-                if (!empty($book->author)) {
-                    $authors = [['name' => $book->author]];
+                if (!empty($book['author'])) {
+                    $authors = [['name' => $book['author']]];
                 }
                 
                 return [
-                    'id' => $book->id,
-                    'title' => $book->title ?? 'Untitled',
-                    'subtitle' => $book->subtitle,
-                    'synopsis' => $book->synopsis,
+                    'id' => $book['id'],
+                    'title' => $book['title'] ?? 'Untitled',
+                    'subtitle' => $book['subtitle'] ?? null,
+                    'synopsis' => $book['synopsis'] ?? null,
                     'authors' => $authors ?: [['name' => 'Unknown Author']],
-                    'cover_image_url' => $book->cover_image_url,
-                    'description' => $book->synopsis,
-                    'page_count' => $book->page_count ?? 200,
-                    'price' => $book->price,
-                    'publication_date' => $book->publication_date,
+                    'cover_image_url' => $book['cover_image_url'] ?? null,
+                    'description' => $book['synopsis'] ?? null,
+                    'page_count' => $book['page_count'] ?? 200,
+                    'price' => $book['price'] ?? null,
+                    'publication_date' => $book['publication_date'] ?? null,
                 ];
             }
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

@@ -110,6 +110,10 @@ class ProfileController extends Controller
             return response()->json($result);
         }
 
-        return redirect()->route('wishlist')->with('success', $result['message']);
+        if ($result['success']) {
+            return redirect()->back()->with('success', $result['message']);
+        }
+
+        return redirect()->back()->with('error', $result['message']);
     }
 }

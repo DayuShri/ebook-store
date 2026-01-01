@@ -7,17 +7,16 @@ use App\Modules\Wishlist\Exceptions\BookNotFoundException;
 use App\Modules\Wishlist\Exceptions\BookNotInWishlistException;
 use App\Modules\Wishlist\Exceptions\WishlistException;
 use App\Modules\Wishlist\Models\Wishlist;
-use Illuminate\Support\Facades\Http;
+use App\Services\CatalogClient;
 use Illuminate\Support\Facades\Log;
 
 class WishlistService
 {
-    /**
-     * Get the HMVC base URL.
-     */
-    protected function hmvcUrl(string $path): string
+    protected CatalogClient $catalogClient;
+
+    public function __construct(CatalogClient $catalogClient)
     {
-        return config('app.url') . '/hmvc/catalog' . $path;
+        $this->catalogClient = $catalogClient;
     }
 
     /**
@@ -37,28 +36,16 @@ class WishlistService
             $result = [];
 
             foreach ($wishlistItems as $item) {
-                // Call Catalog HMVC to get book details
-                $response = Http::get($this->hmvcUrl("/books/{$item->book_id}/full"));
+                // Call Catalog via internal HMVC client
+                $bookData = $this->catalogClient->getBookFullDetail($item->book_id);
 
-                if ($response->successful()) {
-                    $bookData = $response->json();
-                    $result[] = [
-                        'id' => $item->id,
-                        'user_id' => $item->user_id,
-                        'book_id' => $item->book_id,
-                        'added_at' => $item->added_at,
-                        'book' => $bookData,
-                    ];
-                } else {
-                    // Book might have been deleted, still include in wishlist
-                    $result[] = [
-                        'id' => $item->id,
-                        'user_id' => $item->user_id,
-                        'book_id' => $item->book_id,
-                        'added_at' => $item->added_at,
-                        'book' => null,
-                    ];
-                }
+                $result[] = [
+                    'id' => $item->id,
+                    'user_id' => $item->user_id,
+                    'book_id' => $item->book_id,
+                    'added_at' => $item->added_at,
+                    'book' => $bookData, // Will be null if book not found or inactive
+                ];
             }
 
             return $result;
@@ -84,15 +71,10 @@ class WishlistService
     public function addToWishlist(string $userId, string $bookId): Wishlist
     {
         try {
-            // Verify book exists via Catalog HMVC
-            $response = Http::get($this->hmvcUrl("/books/{$bookId}/exists"));
+            // Verify book exists via internal Catalog client
+            $exists = $this->catalogClient->checkBookExists($bookId);
 
-            if (!$response->successful()) {
-                throw new BookNotFoundException("Failed to verify book with ID {$bookId}");
-            }
-
-            $data = $response->json();
-            if (!$data['exists']) {
+            if (!$exists) {
                 throw new BookNotFoundException("Book with ID {$bookId} not found or not active");
             }
 

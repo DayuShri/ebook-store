@@ -26,7 +26,13 @@ class WalletController extends Controller
             $transactions = $wallet->transactions()
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
-                ->get();
+                ->get()
+                ->map(function ($transaction) {
+                    if ($transaction->transaction_type === 'payment') {
+                        $transaction->amount = -abs($transaction->amount);
+                    }
+                    return $transaction;
+                });
 
             return response()->json([
                 'data' => [

@@ -72,10 +72,19 @@ class WishlistController extends Controller
                 $request->book_id
             );
 
+            // Get book details via HMVC Catalog integration
+            $bookData = app(\App\Services\CatalogClient::class)->getBookFullDetail($request->book_id);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Book added to wishlist successfully',
-                'data' => $wishlistItem->load('book'),
+                'data' => [
+                    'id' => $wishlistItem->id,
+                    'user_id' => $wishlistItem->user_id,
+                    'book_id' => $wishlistItem->book_id,
+                    'added_at' => $wishlistItem->added_at,
+                    'book' => $bookData,
+                ],
             ], 201);
         } catch (BookNotFoundException $e) {
             return response()->json([

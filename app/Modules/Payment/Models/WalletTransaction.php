@@ -31,4 +31,11 @@ class WalletTransaction extends Model
     {
         return $this->belongsTo(Wallet::class);
     }
+
+    protected $appends = ['type'];
+
+    public function getTypeAttribute()
+    {
+        return $this->transaction_type;
+    }
 }

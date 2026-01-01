@@ -19,6 +19,7 @@
     $price    = (float) ($get($book, 'price', 0) ?? 0);
     $discount = (float) ($get($book, 'discount_percentage', 0) ?? 0);
     $avgRating = $get($book, 'avg_rating', null);
+    $isInWishlist = $get($book, 'is_in_wishlist', false);
 
     // Categories normalize (array/collection)
     $categories = $get($book, 'categories', []);
@@ -71,18 +72,28 @@
             </div>
         @endif
 
-        {{-- Wishlist Button (opsional, kamu bisa aktifin nanti kalau sudah ada JS + endpoint) --}}
-        @if($showWishlist)
+        {{-- Wishlist Button --}}
+        @if($showWishlist && !empty($bookId))
             @auth
-                <button type="button"
-                        onclick="window.toggleWishlist && toggleWishlist('{{ $bookId }}')"
-                        class="absolute top-2 right-2 p-2 bg-white/90 rounded-full shadow-md hover:bg-white transition-colors opacity-0 group-hover:opacity-100"
-                        data-wishlist-btn="{{ $bookId }}">
-                    <svg class="w-5 h-5 text-gray-600 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                    </svg>
-                </button>
+                <form action="{{ $isInWishlist ? route('wishlist.remove', $bookId) : route('wishlist.add', $bookId) }}" 
+                      method="POST" 
+                      class="absolute top-2 right-2">
+                    @csrf
+                    @if($isInWishlist)
+                        @method('DELETE')
+                    @endif
+                    <button type="submit" 
+                            class="p-2 bg-white/90 rounded-full shadow-md hover:bg-white transition-colors opacity-0 group-hover:opacity-100"
+                            title="{{ $isInWishlist ? 'Hapus dari Wishlist' : 'Tambah ke Wishlist' }}">
+                        <svg class="w-5 h-5 {{ $isInWishlist ? 'text-red-500' : 'text-gray-600 hover:text-red-500' }}" 
+                             fill="{{ $isInWishlist ? 'currentColor' : 'none' }}" 
+                             stroke="currentColor" 
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                    </button>
+                </form>
             @endauth
         @endif
     </a>

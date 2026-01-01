@@ -5,14 +5,19 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Services\CatalogService;
 use App\Modules\Catalog\Models\BookCategory;
+use App\Services\Frontend\UserFrontendService;
 
 class HomeController extends Controller
 {
     protected $catalogService;
+    protected $userService;
 
-    public function __construct(CatalogService $catalogService)
-    {
+    public function __construct(
+        CatalogService $catalogService,
+        UserFrontendService $userService
+    ) {
         $this->catalogService = $catalogService;
+        $this->userService = $userService;
     }
 
     public function index()
@@ -55,6 +60,12 @@ class HomeController extends Controller
             ])->values()->all();
         }
 
+        // Check wishlist status for authenticated users
+        $isInWishlist = false;
+        if (auth()->check()) {
+            $isInWishlist = $this->userService->isInWishlist($b->id);
+        }
+
         return [
             'id' => $b->id,
             'title' => $b->title,
@@ -63,6 +74,7 @@ class HomeController extends Controller
             'price' => (float) ($b->price ?? 0),
             'discount_percentage' => (float) ($b->discount_percentage ?? 0),
             'avg_rating' => $b->avg_rating, // Now comes from CatalogService
+            'is_in_wishlist' => $isInWishlist,
             'categories' => $categories,
         ];
     }

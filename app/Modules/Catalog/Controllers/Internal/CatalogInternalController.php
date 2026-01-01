@@ -67,6 +67,24 @@ class CatalogInternalController extends Controller
         ]);
     }
 
+    /**
+     * Check if a book exists and is active.
+     * Used by Wishlist and other modules.
+     *
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function checkBookExists(string $id): JsonResponse
+    {
+        $exists = Book::where('id', $id)
+            ->where('is_active', true)
+            ->exists();
+
+        return response()->json([
+            'exists' => $exists
+        ]);
+    }
+
     
     public function full($id)
     {

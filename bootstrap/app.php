@@ -37,6 +37,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Handle authentication errors
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, Request $request) {
+            if ($request->is('api/*') || $request->is('hmvc/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+        });
+
         // Force JSON responses for API routes
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*') || $request->is('hmvc/*')) {

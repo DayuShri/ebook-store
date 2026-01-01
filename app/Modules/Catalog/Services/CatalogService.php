@@ -150,4 +150,53 @@ class CatalogService
         ];
     }
 
+    /**
+     * Check if a book exists and is active.
+     * Used by Wishlist module for validation.
+     *
+     * @param string $bookId
+     * @return bool
+     */
+    public function checkBookExists(string $bookId): bool
+    {
+        return Book::where('id', $bookId)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    /**
+     * Get full book details with categories.
+     * Used by Wishlist module for displaying wishlist items.
+     *
+     * @param string $bookId
+     * @return array|null
+     */
+    public function getBookFullDetail(string $bookId): ?array
+    {
+        $book = Book::where('id', $bookId)
+            ->where('is_active', true)
+            ->with('categories')
+            ->first();
+
+        if (!$book) {
+            return null;
+        }
+
+        return [
+            'id' => $book->id,
+            'title' => $book->title,
+            'subtitle' => $book->subtitle,
+            'author' => $book->author,
+            'publisher' => $book->publisher,
+            'synopsis' => $book->synopsis,
+            'price' => $book->price,
+            'discount_percentage' => $book->discount_percentage,
+            'cover_image_url' => $book->cover_image_url,
+            'publication_date' => $book->publication_date,
+            'page_count' => $book->page_count,
+            'is_active' => $book->is_active,
+            'categories' => $book->categories,
+        ];
+    }
+
 }
